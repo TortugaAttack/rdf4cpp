@@ -48,7 +48,7 @@ struct Timezone {
         if (sep == std::string::npos) {
             throw InvalidNode{std::format("{} parsing error: timezone expected :", dt)};
         }
-        std::chrono::hours h{datatypes::registry::util::from_chars<int32_t, "timezone">(v.substr(0, sep))};
+        std::chrono::hours const h{datatypes::registry::util::from_chars<int32_t, "timezone">(v.substr(0, sep))};
         tz.offset = std::chrono::minutes{datatypes::registry::util::from_chars<int32_t, "timezone">(v.substr(sep + 1))} + std::chrono::minutes{h};
         if (negative) {
             tz.offset *= -1;
@@ -157,8 +157,6 @@ struct Date {
     using time_point_local = std::chrono::time_point<std::chrono::local_t, std::chrono::duration<P, std::chrono::days::period>>;
 
 private:
-    static constexpr bool arithmetic_noexcept = noexcept(Y{} + Y{}) && noexcept(Y{} - Y{}) && noexcept(Y{} / Y{}) && noexcept(Y{} * Y{});
-
     static constexpr std::chrono::day last_day_in_month(Year<Y> year, std::chrono::month month) noexcept(noexcept(year.is_leap())) {
         assert(month.ok());
         constexpr unsigned char common[] = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
@@ -178,7 +176,7 @@ public:
         : year(y), month(m), day(last_day_in_month(y, m)) {
     }
     template<typename P>
-    constexpr explicit Date(time_point<P> sd) noexcept(arithmetic_noexcept) {
+    constexpr explicit Date(time_point<P> sd) noexcept(noexcept(P{} + P{} * P{} - P{} / P{})) {
         static_assert(std::numeric_limits<unsigned>::digits >= 18, "This algorithm has not been ported to a 16 bit unsigned integer");
         static_assert(std::numeric_limits<Y>::digits >= 20, "This algorithm has not been ported to a 16 bit signed integer");
         static_assert(std::numeric_limits<P>::digits >= 20, "This algorithm has not been ported to a 16 bit signed integer");
@@ -197,12 +195,12 @@ public:
         day = std::chrono::day{static_cast<unsigned>(d)};
     }
     template<typename P>
-    constexpr explicit Date(time_point_local<P> sd) noexcept(arithmetic_noexcept)
+    constexpr explicit Date(time_point_local<P> sd) noexcept(noexcept(P{} + P{} * P{} - P{} / P{}))
         : Date(time_point<P>(sd.time_since_epoch())) {
     }
 
     template<typename P = boost::multiprecision::checked_int128_t>
-    [[nodiscard]] constexpr time_point<P> to_time_point() const noexcept(arithmetic_noexcept) {
+    [[nodiscard]] constexpr time_point<P> to_time_point() const noexcept(noexcept(P{} + P{} * P{} - P{} / P{})) {
         static_assert(std::numeric_limits<unsigned>::digits >= 18, "This algorithm has not been ported to a 16 bit unsigned integer");
         static_assert(std::numeric_limits<Y>::digits >= 20, "This algorithm has not been ported to a 16 bit signed integer");
         static_assert(std::numeric_limits<Y>::digits >= 20, "This algorithm has not been ported to a 16 bit signed integer");
@@ -218,7 +216,7 @@ public:
         return time_point<P>{typename time_point<P>::duration{era * 146097 + static_cast<P>(doe) - 719468}};
     }
     template<typename P = boost::multiprecision::checked_int128_t>
-    [[nodiscard]] constexpr time_point_local<P> to_time_point_local() const noexcept(arithmetic_noexcept) {
+    [[nodiscard]] constexpr time_point_local<P> to_time_point_local() const noexcept(noexcept(P{} + P{} * P{} - P{} / P{})) {
         return time_point_local<P>{to_time_point<P>().time_since_epoch()};
     }
 
@@ -227,6 +225,18 @@ public:
     }
 
     constexpr auto operator<=>(Date const &) const noexcept = default;
+
+    friend constexpr Date operator+(Date const &d, std::chrono::months m) {
+        auto mo = static_cast<unsigned int>(d.month) + m.count() - 1;
+        auto y = d.year.year;
+        y += mo / 12;
+        mo %= 12;
+        if (mo < 0) { // fix result of % being in [-11,11]
+            --y;
+            mo += 12;
+        }
+        return Date{Year{y}, std::chrono::month{static_cast<unsigned int>(mo+1)}, d.day};
+    }
 };
 
 template<typename Y = int64_t>
@@ -248,7 +258,7 @@ namespace util {
 inline constexpr Date<> time_point_replacement_date{Year<>(1972), std::chrono::December, std::chrono::last};
 inline constexpr DurationNano time_point_replacement_time_of_day{0};
 
-constexpr TimePoint construct_timepoint(Date<> const &date, DurationNano time_of_day) {
+constexpr TimePoint construct_timepoint(Date<> const &date, const DurationNano& time_of_day) {
     auto sd = date.to_time_point_local();
     auto ms = static_cast<TimePoint>(sd);
     ms += time_of_day;
@@ -345,20 +355,22 @@ struct std::formatter<rdf4cpp::ZonedTime > : std::formatter<string_view> {
     }
 };
 
-template<typename Y>
-std::ostream& operator<< (std::ostream& os, const rdf4cpp::Year<Y>& value) {
-    os << std::format("{}", value);
-    return os;
-}
-template<typename Y>
-std::ostream& operator<< (std::ostream& os, const rdf4cpp::Date<Y>& value) {
-    os << std::format("{}", value);
-    return os;
-}
-template<typename Y>
-std::ostream& operator<< (std::ostream& os, const rdf4cpp::YearMonth<Y>& value) {
-    os << std::format("{}", value);
-    return os;
+namespace rdf4cpp {
+    template<typename Y>
+    std::ostream &operator<<(std::ostream &os, rdf4cpp::Year<Y> const &value) {
+        os << std::format("{}", value);
+        return os;
+    }
+    template<typename Y>
+    std::ostream &operator<<(std::ostream &os, rdf4cpp::Date<Y> const &value) {
+        os << std::format("{}", value);
+        return os;
+    }
+    template<typename Y>
+    std::ostream &operator<<(std::ostream &os, rdf4cpp::YearMonth<Y> const &value) {
+        os << std::format("{}", value);
+        return os;
+    }
 }
 #endif
 

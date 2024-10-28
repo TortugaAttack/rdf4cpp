@@ -307,7 +307,7 @@ public:
 inline Date<> normalize(Date<> const &i) {
     // normalize
     // see https://en.cppreference.com/w/cpp/chrono/year_month_day/operator_days
-    return Date{i.to_time_point()}; // TODO check
+    return Date{(i + std::chrono::months{0}).to_time_point()};
 }
 
 template<std::integral I, I base = 10>
