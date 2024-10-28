@@ -14,7 +14,7 @@ namespace rdf4cpp {
 IRI::IRI(storage::identifier::NodeBackendHandle handle) noexcept : Node(handle) {
 }
 
-IRI::IRI() noexcept : Node{storage::identifier::NodeBackendHandle{{}, storage::identifier::RDFNodeType::IRI, {}}} {
+IRI::IRI() noexcept : Node{storage::identifier::NodeBackendHandle{}} {
 }
 
 IRI::IRI(std::string_view iri, storage::DynNodeStoragePtr node_storage)

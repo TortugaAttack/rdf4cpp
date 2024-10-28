@@ -5,7 +5,7 @@
 #include <uni_algo/all.h>
 
 namespace rdf4cpp {
-BlankNode::BlankNode() noexcept : Node{storage::identifier::NodeBackendHandle{{}, storage::identifier::RDFNodeType::BNode, {}}} {
+BlankNode::BlankNode() noexcept : Node{storage::identifier::NodeBackendHandle{}} {
 }
 
 BlankNode::BlankNode(std::string_view identifier, storage::DynNodeStoragePtr node_storage)

@@ -39,7 +39,7 @@ static std::string run_serialize(S serialize, T const &value) {
 Literal::Literal(storage::identifier::NodeBackendHandle handle) noexcept : Node{handle} {
 }
 
-Literal::Literal() noexcept : Node{storage::identifier::NodeBackendHandle{{}, storage::identifier::RDFNodeType::Literal, {}}} {
+Literal::Literal() noexcept : Node{storage::identifier::NodeBackendHandle{}} {
 }
 
 Literal Literal::make_null() noexcept {

@@ -164,7 +164,7 @@ TEST_SUITE("comparisons") {
         // - lexical order of types, and null smallest
         // - null Node has type BNode
         // - literal comparison
-        std::vector<Node> const expected{node, null_iri, blank_node, iri, lit4, lit, lit3, variable};
+        std::vector<Node> const expected{node, blank_node, iri, lit4, lit, lit3, variable};
 
         CHECK(v == expected);
     }
@@ -183,7 +183,7 @@ TEST_SUITE("comparisons") {
         std::unordered_set<Node> s{
                 iri, null_iri, lit, lit2, lit3, lit4, node, blank_node, variable};
 
-        CHECK(s.size() == 8);
+        CHECK(s.size() == 7);
         CHECK(s.contains(lit));
         CHECK(s.contains(lit2));
         CHECK(s.contains(lit3));
@@ -304,4 +304,44 @@ TEST_CASE_TEMPLATE("NodeStorage erase IRI", T, reference_node_storage::SyncRefer
     CHECK(IRI::find(rdf4cpp::datatypes::xsd::Int::identifier, ns) != IRI());
     CHECK(!ns.erase_iri(IRI::find(rdf4cpp::datatypes::xsd::Int::identifier, ns).backend_handle().id()));
     CHECK(IRI::find(rdf4cpp::datatypes::xsd::Int::identifier, ns) != IRI());
+}
+
+TEST_CASE("null nodes") {
+    Node n1{};
+    Literal n2{};
+    BlankNode n3{};
+    IRI n4{};
+    query::Variable n5{};
+
+    CHECK_EQ(n1, n2);
+    CHECK_EQ(n2, n3);
+    CHECK_EQ(n3, n4);
+    CHECK_EQ(n4, n5);
+    CHECK_EQ(n5, n1);
+    CHECK_EQ(n1.backend_handle(), n2.backend_handle());
+    CHECK_EQ(n2.backend_handle(), n3.backend_handle());
+    CHECK_EQ(n3.backend_handle(), n4.backend_handle());
+    CHECK_EQ(n4.backend_handle(), n5.backend_handle());
+    CHECK_EQ(n5.backend_handle(), n1.backend_handle());
+
+    auto const run_checks = [](Node node) {
+        // is_* checks are accessed via Node::is_*
+        CHECK(node.null());
+        CHECK_FALSE(node.is_blank_node());
+        CHECK_FALSE(node.is_literal());
+        CHECK_FALSE(node.is_iri());
+        CHECK_FALSE(node.is_variable());
+    };
+
+    run_checks(n1);
+    run_checks(n2);
+    run_checks(n3);
+    run_checks(n4);
+    run_checks(n5);
+
+    // is_* checks are accessed with concrete type
+    CHECK(n2.is_literal());
+    CHECK(n3.is_blank_node());
+    CHECK(n4.is_iri());
+    CHECK(n5.is_variable());
 }

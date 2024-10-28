@@ -17,7 +17,7 @@ enum struct RDFNodeType : uint8_t {
     Variable
 };
 
-inline std::string_view to_string_view(RDFNodeType const node_type) noexcept {
+constexpr std::string_view to_string_view(RDFNodeType const node_type) noexcept {
     switch (node_type) {
         case RDFNodeType::Variable:
             return "variable";

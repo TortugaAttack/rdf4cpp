@@ -6,7 +6,7 @@
 #include <uni_algo/all.h>
 
 namespace rdf4cpp::query {
-Variable::Variable() noexcept : Node{storage::identifier::NodeBackendHandle{{}, storage::identifier::RDFNodeType::Variable, {}}} {
+Variable::Variable() noexcept : Node{storage::identifier::NodeBackendHandle{}} {
 }
 
 Variable::Variable(std::string_view name, bool anonymous, storage::DynNodeStoragePtr node_storage)
