@@ -378,6 +378,8 @@ TEST_CASE("datatype dateTime") {
     CHECK_THROWS_AS(a = Literal::make_typed<datatypes::xsd::DateTime>("2042-13-30T00:00:00.000"), InvalidNode);
     CHECK_THROWS_AS(a = Literal::make_typed<datatypes::xsd::DateTime>("2042-02-30T00:00:00.000"), InvalidNode);
     CHECK(a.null()); // turn off unused and nodiscard ignored warnings
+    auto m = std::format("{}-12-31T23:59:59", std::numeric_limits<int64_t>::max());
+    CHECK(Literal::make_typed<datatypes::xsd::DateTime>(m).lexical_form() == m);
     CHECK(Literal::make_typed<datatypes::xsd::DateTime>("2042-05-06T00:00:00.000") == Literal::make_typed<datatypes::xsd::DateTime>("2042-05-05T24:00:00"));
     CHECK(Literal::make_typed<datatypes::xsd::DateTime>("2042-05-05T24:00:00.000").lexical_form() == "2042-05-06T00:00:00");
 }

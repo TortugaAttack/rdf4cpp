@@ -203,7 +203,7 @@ public:
     [[nodiscard]] constexpr time_point<P> to_time_point() const noexcept(noexcept(P{} + P{} * P{} - P{} / P{})) {
         static_assert(std::numeric_limits<unsigned>::digits >= 18, "This algorithm has not been ported to a 16 bit unsigned integer");
         static_assert(std::numeric_limits<Y>::digits >= 20, "This algorithm has not been ported to a 16 bit signed integer");
-        static_assert(std::numeric_limits<Y>::digits >= 20, "This algorithm has not been ported to a 16 bit signed integer");
+        static_assert(std::numeric_limits<P>::digits >= 20, "This algorithm has not been ported to a 16 bit signed integer");
         P y = year.year;
         auto m = static_cast<unsigned int>(month);
         auto d = static_cast<unsigned int>(day);
@@ -266,7 +266,7 @@ constexpr TimePoint construct_timepoint(Date<> const &date, const DurationNano& 
 }
 
 constexpr std::pair<Date<>, DurationNano> deconstruct_timepoint(TimePoint const &tp) {
-    auto days = std::chrono::floor<std::chrono::days>(tp);
+    auto days = std::chrono::floor<std::chrono::duration<DurationNano::rep, std::chrono::days::period>>(tp);
     return {Date{days}, tp - days};
 }
 
