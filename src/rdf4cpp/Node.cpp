@@ -147,7 +147,7 @@ TriBool Node::eq_impl(Node const &other) const noexcept {
             return handle_.bnode_backend() == other.handle_.bnode_backend();
         }
         case RDFNodeType::Variable: {
-            return handle_.variable_backend() == other.handle_.variable_backend();
+            return query::Variable{handle_}.eq(query::Variable{other.handle_});
         }
         default: {
             assert(false); // unreachable
@@ -176,9 +176,9 @@ std::partial_ordering Node::compare_impl(Node const &other) const noexcept {
     return Literal{handle_}.compare(Literal{other.handle_});
 }
 
-std::weak_ordering Node::order(Node const &other) const noexcept {
+std::strong_ordering Node::order(Node const &other) const noexcept {
     if (this->handle_ == other.handle_) {
-        return std::weak_ordering::equivalent;
+        return std::strong_ordering::equivalent;
     }
 
     // null nodes are the smallest nodes
@@ -187,10 +187,10 @@ std::weak_ordering Node::order(Node const &other) const noexcept {
         return this->handle_.type() <=> other.handle_.type();
     }
     if (this->null()) {
-        return std::weak_ordering::less;
+        return std::strong_ordering::less;
     }
     if (other.null()) {
-        return std::weak_ordering::greater;
+        return std::strong_ordering::greater;
     }
 
     // different type
@@ -206,7 +206,7 @@ std::weak_ordering Node::order(Node const &other) const noexcept {
         case storage::identifier::RDFNodeType::Literal:
             return Literal{handle_}.order(Literal{other.handle_});
         case storage::identifier::RDFNodeType::Variable:
-            return this->handle_.variable_backend() <=> other.handle_.variable_backend();
+            return query::Variable{this->handle_}.order(query::Variable{other.handle_});
         default:{
             assert(false); // this will never be reached because RDFNodeType has only 4 values.
             return std::strong_ordering::less;

@@ -305,3 +305,17 @@ TEST_CASE_TEMPLATE("NodeStorage erase IRI", T, reference_node_storage::SyncRefer
     CHECK(!ns.erase_iri(IRI::find(rdf4cpp::datatypes::xsd::Int::identifier, ns).backend_handle().id()));
     CHECK(IRI::find(rdf4cpp::datatypes::xsd::Int::identifier, ns) != IRI());
 }
+
+TEST_CASE("variable inlining") {
+    query::Variable v1 = query::Variable::make_named("abcde");
+    CHECK(v1.is_inlined());
+    CHECK_FALSE(v1.is_anonymous());
+    CHECK_EQ(v1.name(), "abcde");
+
+    query::Variable v2 = query::Variable::make_named("fghij");
+    CHECK_FALSE(v2.is_anonymous());
+    CHECK(v2.is_inlined());
+
+    CHECK_EQ(v1.name().size(), v2.name().size());
+    CHECK(v1.order(v2) == std::strong_ordering::less);
+}

@@ -3,6 +3,7 @@
 
 #include <ostream>
 #include <rdf4cpp/Node.hpp>
+#include <rdf4cpp/CowString.hpp>
 
 namespace rdf4cpp::query {
 
@@ -53,7 +54,7 @@ public:
 
     [[nodiscard]] bool is_anonymous() const;
 
-    [[nodiscard]] std::string_view name() const;
+    [[nodiscard]] CowString name() const;
 
     /**
      * See Node::serialize
@@ -67,6 +68,11 @@ public:
     [[nodiscard]] bool is_literal() const;
     [[nodiscard]] bool is_variable() const;
     [[nodiscard]] bool is_iri() const;
+
+    [[nodiscard]] std::strong_ordering order(Variable const &other) const noexcept;
+
+    [[nodiscard]] bool eq(Variable const &other) const noexcept;
+    [[nodiscard]] bool ne(Variable const &other) const noexcept;
 
     friend struct Node;
 

@@ -44,8 +44,8 @@ TEST_CASE("Variable - Check for single node with anonymous false") {
 
 TEST_CASE("Variable::find") {
     storage::reference_node_storage::SyncReferenceNodeStorage nst;
-    static constexpr std::string_view v = "var";
-    static constexpr std::string_view v2 = "var2";
+    static constexpr std::string_view v = "varaaaaaaa";
+    static constexpr std::string_view v2 = "varaaaaaaaa2";
 
     CHECK(query::Variable::find_named(v, nst) == query::Variable{});
     auto qv = query::Variable::make_named(v, nst);

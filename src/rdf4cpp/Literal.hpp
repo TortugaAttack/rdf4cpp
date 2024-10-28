@@ -961,7 +961,7 @@ public:
      *          - at least one of the value's types is not comparable
      *          - there is no viable conversion to a common type to check for equality
      */
-    [[nodiscard]] std::weak_ordering order(Literal const &other) const noexcept;
+    [[nodiscard]] std::strong_ordering order(Literal const &other) const noexcept;
 
     [[nodiscard]] TriBool eq(Literal const &other) const noexcept;
     [[nodiscard]] bool order_eq(Literal const &other) const noexcept;
