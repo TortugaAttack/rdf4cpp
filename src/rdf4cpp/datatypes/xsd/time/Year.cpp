@@ -8,7 +8,7 @@ namespace rdf4cpp::datatypes::registry {
 template<>
 capabilities::Default<xsd_gYear>::cpp_type capabilities::Default<xsd_gYear>::from_string(std::string_view s) {
     auto tz = rdf4cpp::Timezone::parse_optional(s, identifier);
-    auto year = registry::util::parse_date_time_fragment<rdf4cpp::RDFYear, boost::multiprecision::checked_int128_t, '\0', identifier>(s);
+    auto year = registry::util::parse_date_time_fragment<rdf4cpp::Year<>, int64_t, '\0', identifier>(s);
     return std::make_pair(year, tz);
 }
 
@@ -27,8 +27,8 @@ bool capabilities::Default<xsd_gYear>::serialize_canonical_string(cpp_type const
 template<>
 std::partial_ordering capabilities::Comparable<xsd_gYear>::compare(cpp_type const &lhs, cpp_type const &rhs) noexcept {
     try {
-        auto year_to_tp = [](RDFYear const &t) -> rdf4cpp::TimePoint {
-            return rdf4cpp::util::construct_timepoint(RDFDate{t, rdf4cpp::util::time_point_replacement_date.month, rdf4cpp::util::time_point_replacement_date.day}, rdf4cpp::util::time_point_replacement_time_of_day);
+        auto year_to_tp = [](Year<> const &t) -> rdf4cpp::TimePoint {
+            return rdf4cpp::util::construct_timepoint(Date{t, rdf4cpp::util::time_point_replacement_date.month, rdf4cpp::util::time_point_replacement_date.day}, rdf4cpp::util::time_point_replacement_time_of_day);
         };
         return registry::util::compare_time_points(year_to_tp(lhs.first), lhs.second, year_to_tp(rhs.first), rhs.second);
     } catch (std::overflow_error const &) {
@@ -50,13 +50,13 @@ std::optional<storage::identifier::LiteralID> capabilities::Inlineable<xsd_gYear
 template<>
 capabilities::Inlineable<xsd_gYear>::cpp_type capabilities::Inlineable<xsd_gYear>::from_inlined(storage::identifier::LiteralID inlined) noexcept {
     auto i = util::unpack_integral<int64_t>(inlined);
-    return {RDFYear{i}, std::nullopt};
+    return {Year{i}, std::nullopt};
 }
 
 template<>
 template<>
 capabilities::Subtype<xsd_gYear>::super_cpp_type<0> capabilities::Subtype<xsd_gYear>::into_supertype<0>(cpp_type const &value) noexcept {
-    return std::make_pair(RDFDate{value.first, rdf4cpp::util::time_point_replacement_date.month, rdf4cpp::util::time_point_replacement_date.day}, value.second);
+    return std::make_pair(Date{value.first, rdf4cpp::util::time_point_replacement_date.month, rdf4cpp::util::time_point_replacement_date.day}, value.second);
 }
 
 template<>

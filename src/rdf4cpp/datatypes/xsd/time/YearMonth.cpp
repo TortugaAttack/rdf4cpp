@@ -8,10 +8,10 @@ namespace rdf4cpp::datatypes::registry {
 template<>
 capabilities::Default<xsd_gYearMonth>::cpp_type capabilities::Default<xsd_gYearMonth>::from_string(std::string_view s) {
     using namespace registry::util;
-    auto year = parse_date_time_fragment<RDFYear, boost::multiprecision::checked_int128_t, '-', identifier>(s);
+    auto year = parse_date_time_fragment<Year<>, int64_t, '-', identifier>(s);
     auto tz = rdf4cpp::Timezone::parse_optional(s, identifier);
     auto month = parse_date_time_fragment<std::chrono::month, unsigned int, '\0', identifier>(s);
-    auto date = RDFYearMonth{year, month};
+    auto date = YearMonth{year, month};
     if (!month.ok()) {
         throw InvalidNode(std::format("{} parsing error: {} is invalid", identifier, date));
     }
@@ -55,13 +55,13 @@ std::optional<storage::identifier::LiteralID> capabilities::Inlineable<xsd_gYear
 template<>
 capabilities::Inlineable<xsd_gYearMonth>::cpp_type capabilities::Inlineable<xsd_gYearMonth>::from_inlined(storage::identifier::LiteralID inlined) noexcept {
     auto i = util::unpack<InliningHelperYearMonth>(inlined);
-    return std::make_pair(RDFYearMonth{RDFYear{i.year}, std::chrono::month{i.month}}, std::nullopt);
+    return std::make_pair(YearMonth<>{Year<>{i.year}, std::chrono::month{i.month}}, std::nullopt);
 }
 
 template<>
 std::partial_ordering capabilities::Comparable<xsd_gYearMonth>::compare(cpp_type const &lhs, cpp_type const &rhs) noexcept {
-    auto ym_to_tp = [](const RDFYearMonth& t) -> rdf4cpp::TimePoint {
-        return rdf4cpp::util::construct_timepoint(RDFDate{t.year, t.month, std::chrono::last}, rdf4cpp::util::time_point_replacement_time_of_day);
+    auto ym_to_tp = [](YearMonth<> const & t) -> rdf4cpp::TimePoint {
+        return rdf4cpp::util::construct_timepoint(Date{t.year, t.month, std::chrono::last}, rdf4cpp::util::time_point_replacement_time_of_day);
     };
     return registry::util::compare_time_points(ym_to_tp(lhs.first), lhs.second, ym_to_tp(rhs.first), rhs.second);
 }
@@ -69,13 +69,13 @@ std::partial_ordering capabilities::Comparable<xsd_gYearMonth>::compare(cpp_type
 template<>
 template<>
 capabilities::Subtype<xsd_gYearMonth>::super_cpp_type<0> capabilities::Subtype<xsd_gYearMonth>::into_supertype<0>(cpp_type const &value) noexcept {
-    return std::make_pair(RDFDate{value.first.year, value.first.month, std::chrono::last}, value.second);
+    return std::make_pair(Date{value.first.year, value.first.month, std::chrono::last}, value.second);
 }
 
 template<>
 template<>
 nonstd::expected<capabilities::Subtype<xsd_gYearMonth>::cpp_type, DynamicError> capabilities::Subtype<xsd_gYearMonth>::from_supertype<0>(super_cpp_type<0> const &value) noexcept {
-    return std::make_pair(RDFYearMonth{value.first.year, value.first.month}, value.second);
+    return std::make_pair(YearMonth{value.first.year, value.first.month}, value.second);
 }
 #endif
 

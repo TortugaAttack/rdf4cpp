@@ -89,36 +89,6 @@ F from_chars(std::string_view s) {
     return value;
 }
 
-/**
- * Parses a valid string representation of a boost::multiprecision::number
- *
- * @tparam F the result type
- * @param s the string to be parsed
- * @return the resulting value
- * @throws rdf4cpp::InvalidNode if the string cannot be parsed
- */
-template<typename F, ConstexprString datatype>
-requires std::same_as<F, boost::multiprecision::number<typename F::backend_type, F::et>>
-F from_chars(std::string_view s) {
-    if (s.starts_with('+')) {
-        // from_chars does not allow initial +
-        s.remove_prefix(1);
-    }
-    while (s.starts_with('0') && s.size() > 1) { // leading 0 messes up boosts parser
-        s.remove_prefix(1);
-    }
-
-    try {
-        return F(s);
-    } catch (std::overflow_error const &e) {
-        throw rdf4cpp::InvalidNode{std::format("{} parsing error: literal is out of range", datatype)};
-    } catch (std::range_error const &e) {
-        throw rdf4cpp::InvalidNode{std::format("{} parsing error: literal is out of range", datatype)};
-    } catch (std::runtime_error const &e) {
-        throw rdf4cpp::InvalidNode{std::format("{} parsing error: invalid char {}", datatype, e.what())};
-    }
-}
-
 namespace detail  {
 /**
  * equivalent to static_cast<size_t>(1 + std::log10(value))

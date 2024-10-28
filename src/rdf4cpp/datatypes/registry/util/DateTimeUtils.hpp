@@ -173,18 +173,18 @@ inline rdf4cpp::TimePoint add_duration_to_date_time(const rdf4cpp::TimePoint& tp
     // only gets smaller, no overflow possible
     auto days = std::chrono::floor<std::chrono::days>(tp);
     auto time = tp - days;
-    rdf4cpp::RDFDate ymd{days};
+    rdf4cpp::Date ymd{days};
 
-    boost::multiprecision::checked_int128_t m = static_cast<unsigned int>(ymd.month);
+    int64_t m = static_cast<unsigned int>(ymd.month);
     m += ymd.year.year * 12; // it did fit into a 64 bit TimePoint before, so this cannot overflow
 
     m += d.first.count();
-    boost::multiprecision::checked_int128_t const y = (m-1) / 12;
-    m = boost::multiprecision::abs(m-1) % 12 + 1;
+    int64_t const y = (m-1) / 12;
+    m = std::abs(m-1) % 12 + 1;
 
-    ymd = rdf4cpp::RDFDate{rdf4cpp::RDFYear(y), std::chrono::month{static_cast<unsigned int>(m)}, ymd.day};
+    ymd = rdf4cpp::Date{rdf4cpp::Year<>(y), std::chrono::month{static_cast<unsigned int>(m)}, ymd.day};
     if (!ymd.ok())
-        ymd = rdf4cpp::RDFDate{ymd.year, ymd.month, std::chrono::last};
+        ymd = rdf4cpp::Date{ymd.year, ymd.month, std::chrono::last};
 
     rdf4cpp::TimePoint date = ymd.to_time_point_local();
     date += time;
@@ -304,10 +304,10 @@ public:
     }
 };
 
-inline RDFDate normalize(RDFDate const &i) {
+inline Date<> normalize(Date<> const &i) {
     // normalize
     // see https://en.cppreference.com/w/cpp/chrono/year_month_day/operator_days
-    return RDFDate{i.to_time_point()}; // TODO check
+    return Date{i.to_time_point()}; // TODO check
 }
 
 template<std::integral I, I base = 10>
@@ -326,7 +326,7 @@ static_assert(number_of_digits(-1)==2);
 static_assert(number_of_digits(10)==2);
 static_assert(number_of_digits(std::numeric_limits<uint64_t>::max())==std::numeric_limits<uint64_t>::digits10+1);
 namespace chrono_max_canonical_string_chars {
-    inline constexpr size_t year = std::numeric_limits<boost::multiprecision::checked_int128_t>::digits10 + 2; // +1 for the not fully representable digit, +1 for - sign
+    inline constexpr size_t year = std::numeric_limits<uint64_t>::digits10 + 2; // +1 for the not fully representable digit, +1 for - sign
     //std::chrono::day is in [0, 255]
     inline constexpr size_t day = number_of_digits(255);
     //std::chrono::month is in [0, 255]

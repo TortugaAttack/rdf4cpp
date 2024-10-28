@@ -8,7 +8,7 @@ namespace rdf4cpp::datatypes::registry {
 template<>
 capabilities::Default<xsd_dateTimeStamp>::cpp_type capabilities::Default<xsd_dateTimeStamp>::from_string(std::string_view s) {
     using namespace datatypes::registry::util;
-    auto year = parse_date_time_fragment<RDFYear, boost::multiprecision::checked_int128_t, '-', identifier>(s);
+    auto year = parse_date_time_fragment<Year<>, int64_t, '-', identifier>(s);
     auto month = parse_date_time_fragment<std::chrono::month, unsigned int, '-', identifier>(s);
     auto day = parse_date_time_fragment<std::chrono::day, unsigned int, 'T', identifier>(s);
     auto hours = parse_date_time_fragment<std::chrono::hours, unsigned int, ':', identifier>(s);
@@ -22,7 +22,7 @@ capabilities::Default<xsd_dateTimeStamp>::cpp_type capabilities::Default<xsd_dat
     }
     auto tz = rdf4cpp::Timezone::parse(s.substr(p), identifier);
     std::chrono::nanoseconds ms = parse_nanoseconds<identifier>(s.substr(0, p));
-    auto date = RDFDate{year, month, day};
+    auto date = Date{year, month, day};
     if (registry::relaxed_parsing_mode && !date.ok()) {
         date = normalize(date);
     }
@@ -43,7 +43,7 @@ capabilities::Default<xsd_dateTimeStamp>::cpp_type capabilities::Default<xsd_dat
     auto time = hours + minutes + ms;
     if (!registry::relaxed_parsing_mode) {
         if (time == std::chrono::hours{24}) {
-            date = RDFDate{date.to_time_point_local() + std::chrono::days{1}};
+            date = Date{date.to_time_point_local() + std::chrono::days{1}};
             if (!date.ok()) {
                 throw InvalidNode(std::format("{} parsing error: {} is invalid", identifier, date));
             }

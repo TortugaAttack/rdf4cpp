@@ -15,7 +15,7 @@ namespace rdf4cpp::datatypes::registry {
 #ifndef DOXYGEN_PARSER
 template<>
 struct DatatypeMapping<xsd_gYearMonth> {
-    using cpp_datatype = std::pair<rdf4cpp::RDFYearMonth, rdf4cpp::OptionalTimezone>;
+    using cpp_datatype = std::pair<rdf4cpp::YearMonth<>, rdf4cpp::OptionalTimezone>;
 };
 template<>
 struct DatatypeSupertypeMapping<xsd_gYearMonth> {

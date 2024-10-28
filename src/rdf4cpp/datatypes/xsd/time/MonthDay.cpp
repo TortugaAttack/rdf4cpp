@@ -62,7 +62,7 @@ capabilities::Inlineable<xsd_gMonthDay>::cpp_type capabilities::Inlineable<xsd_g
 template<>
 std::partial_ordering capabilities::Comparable<xsd_gMonthDay>::compare(cpp_type const &lhs, cpp_type const &rhs) noexcept {
     auto md_to_tp = [](std::chrono::month_day md) noexcept -> rdf4cpp::TimePoint {
-        return rdf4cpp::util::construct_timepoint(RDFDate{rdf4cpp::util::time_point_replacement_date.year, md.month(), md.day()}, rdf4cpp::util::time_point_replacement_time_of_day);
+        return rdf4cpp::util::construct_timepoint(Date{rdf4cpp::util::time_point_replacement_date.year, md.month(), md.day()}, rdf4cpp::util::time_point_replacement_time_of_day);
     };
     return registry::util::compare_time_points(md_to_tp(lhs.first), lhs.second, md_to_tp(rhs.first), rhs.second);
 }
@@ -70,7 +70,7 @@ std::partial_ordering capabilities::Comparable<xsd_gMonthDay>::compare(cpp_type 
 template<>
 template<>
 capabilities::Subtype<xsd_gMonthDay>::super_cpp_type<0> capabilities::Subtype<xsd_gMonthDay>::into_supertype<0>(cpp_type const &value) noexcept {
-    return std::make_pair(RDFDate{rdf4cpp::util::time_point_replacement_date.year, value.first.month(), value.first.day()}, value.second);
+    return std::make_pair(Date{rdf4cpp::util::time_point_replacement_date.year, value.first.month(), value.first.day()}, value.second);
 }
 
 template<>
