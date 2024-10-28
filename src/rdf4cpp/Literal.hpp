@@ -1386,7 +1386,7 @@ public:
      * returns the year part of this.
      * @return year or nullopt
      */
-    [[nodiscard]] std::optional<std::chrono::year> year() const noexcept;
+    [[nodiscard]] std::optional<Year<>> year() const noexcept;
 
     /**
      * returns the year part of this.

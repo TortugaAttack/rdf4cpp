@@ -2274,21 +2274,22 @@ Literal Literal::now(storage::DynNodeStoragePtr node_storage) {
     return make_typed_from_value<datatypes::xsd::DateTime>(std::make_pair(t, opt), node_storage);
 }
 
-std::optional<std::chrono::year> Literal::year() const noexcept {
+std::optional<Year<>> Literal::year() const noexcept {
     if (!datatype_eq<datatypes::xsd::DateTime>() && !datatype_eq<datatypes::xsd::DateTimeStamp>() && !datatype_eq<datatypes::xsd::Date>()
             && !datatype_eq<datatypes::xsd::GYearMonth>() && !datatype_eq<datatypes::xsd::GYear>())
         return std::nullopt;
     auto casted = this->cast_to_value<datatypes::xsd::DateTime>();
     if (!casted.has_value())
         return std::nullopt;
-    return std::chrono::year_month_day{std::chrono::floor<std::chrono::days>(casted->first)}.year();
+    auto [date, _] = util::deconstruct_timepoint(casted->first);
+    return date.year;
 }
 
 Literal Literal::as_year(storage::DynNodeStoragePtr node_storage) const {
     auto r = this->year();
     if (!r.has_value())
         return Literal{};
-    return Literal::make_typed_from_value<datatypes::xsd::Integer>(static_cast<int>(*r), select_node_storage(node_storage));
+    return Literal::make_typed_from_value<datatypes::xsd::Integer>(r->year, select_node_storage(node_storage));
 }
 
 std::optional<std::chrono::month> Literal::month() const noexcept {
@@ -2298,7 +2299,8 @@ std::optional<std::chrono::month> Literal::month() const noexcept {
     auto casted = this->cast_to_value<datatypes::xsd::DateTime>();
     if (!casted.has_value())
         return std::nullopt;
-    return std::chrono::year_month_day{std::chrono::floor<std::chrono::days>(casted->first)}.month();
+    auto [date, _] = util::deconstruct_timepoint(casted->first);
+    return date.month;
 }
 
 Literal Literal::as_month(storage::DynNodeStoragePtr node_storage) const {
@@ -2315,7 +2317,8 @@ std::optional<std::chrono::day> Literal::day() const noexcept {
     auto casted = this->cast_to_value<datatypes::xsd::DateTime>();
     if (!casted.has_value())
         return std::nullopt;
-    return std::chrono::year_month_day{std::chrono::floor<std::chrono::days>(casted->first)}.day();
+    auto [date, _] = util::deconstruct_timepoint(casted->first);
+    return date.day;
 }
 
 Literal Literal::as_day(storage::DynNodeStoragePtr node_storage) const {
@@ -2366,7 +2369,7 @@ std::optional<std::chrono::nanoseconds> Literal::seconds() const noexcept {
     if (!casted.has_value())
         return std::nullopt;
     auto [_, t] = util::deconstruct_timepoint(casted->first);
-    std::chrono::hh_mm_ss time{std::chrono::duration_cast<std::chrono::nanoseconds>(t)};
+    std::chrono::hh_mm_ss const time{std::chrono::duration_cast<std::chrono::nanoseconds>(t)};
     return time.seconds() + time.subseconds();
 }
 
@@ -2382,9 +2385,7 @@ std::optional<Timezone> Literal::timezone() const noexcept {
     if (!casted.has_value())
         return std::nullopt;
     auto tz = casted->second;
-    if (!tz.has_value())
-        return std::nullopt;
-    return *tz;
+    return tz;
 }
 
 Literal Literal::as_timezone(storage::DynNodeStoragePtr node_storage) const {
