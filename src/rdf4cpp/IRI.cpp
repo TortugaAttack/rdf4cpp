@@ -133,12 +133,6 @@ IRI::operator std::string() const noexcept {
     });
 }
 
-bool IRI::is_literal() const noexcept { return false; }
-bool IRI::is_variable() const noexcept { return false; }
-bool IRI::is_blank_node() const noexcept { return false; }
-bool IRI::is_iri() const noexcept { return true; }
-
-
 IRI IRI::default_graph(storage::DynNodeStoragePtr node_storage) {
     auto const id = datatypes::registry::reserved_datatype_ids[datatypes::registry::default_graph_iri];
     return IRI{storage::identifier::NodeBackendHandle{storage::identifier::literal_type_to_iri_node_id(id),

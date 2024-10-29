@@ -110,10 +110,10 @@ public:
     [[nodiscard]] explicit operator std::string() const noexcept;
     friend std::ostream &operator<<(std::ostream &os, const IRI &iri);
 
-    [[nodiscard]] bool is_literal() const noexcept;
-    [[nodiscard]] bool is_variable() const noexcept;
-    [[nodiscard]] bool is_blank_node() const noexcept;
-    [[nodiscard]] bool is_iri() const noexcept;
+    bool is_literal() const noexcept = delete;
+    bool is_variable() const noexcept = delete;
+    bool is_blank_node() const noexcept = delete;
+    bool is_iri() const noexcept = delete;
 
     friend struct Node;
     friend struct Literal;

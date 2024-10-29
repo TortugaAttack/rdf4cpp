@@ -338,10 +338,4 @@ TEST_CASE("null nodes") {
     run_checks(n3);
     run_checks(n4);
     run_checks(n5);
-
-    // is_* checks are accessed with concrete type
-    CHECK(n2.is_literal());
-    CHECK(n3.is_blank_node());
-    CHECK(n4.is_iri());
-    CHECK(n5.is_variable());
 }

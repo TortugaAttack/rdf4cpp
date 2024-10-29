@@ -77,10 +77,6 @@ BlankNode::operator std::string() const noexcept {
     });
 }
 
-bool BlankNode::is_literal() const noexcept { return false; }
-bool BlankNode::is_variable() const noexcept { return false; }
-bool BlankNode::is_blank_node() const noexcept { return true; }
-bool BlankNode::is_iri() const noexcept { return false; }
 std::ostream &operator<<(std::ostream &os, BlankNode const &bnode) {
     writer::BufOStreamWriter w{os};
     bnode.serialize(w);

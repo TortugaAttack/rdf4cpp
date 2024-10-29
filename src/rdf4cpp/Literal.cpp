@@ -804,10 +804,6 @@ Literal::operator std::string() const noexcept {
     });
 }
 
-bool Literal::is_literal() const noexcept { return true; }
-bool Literal::is_variable() const noexcept { return false; }
-bool Literal::is_blank_node() const noexcept { return false; }
-bool Literal::is_iri() const noexcept { return false; }
 bool Literal::is_numeric() const noexcept {
     using namespace datatypes::registry;
 

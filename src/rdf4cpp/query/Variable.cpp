@@ -95,11 +95,6 @@ Variable::operator std::string() const {
     });
 }
 
-bool Variable::is_literal() const { return false; }
-bool Variable::is_variable() const { return true; }
-bool Variable::is_blank_node() const { return false; }
-bool Variable::is_iri() const { return false; }
-
 std::ostream &operator<<(std::ostream &os, Variable const &variable) {
     writer::BufOStreamWriter w{os};
     variable.serialize(w);

@@ -157,28 +157,28 @@ public:
     friend std::ostream &operator<<(std::ostream &os, const Node &node);
 
     /**
-     * Checks weather the node is a Literal. If yes, it is safe to convert it with `auto literal = (Literal) rdf_node;`
-     * @return if this is a Literal
+     * Checks whether the node is a Literal
+     * @return err if this is null, otherwise true iff this is a literal
      */
-    [[nodiscard]] bool is_literal() const noexcept;
+    [[nodiscard]] TriBool is_literal() const noexcept;
 
     /**
-     * Checks weather the node is a Variable. If yes, it is safe to convert it with `auto variable = (Variable) rdf_node;`
-     * @return if this is a Variable
+     * Checks whether the node is a variable
+     * @return err if this is null, otherwise true iff this is a variable
      */
-    [[nodiscard]] bool is_variable() const noexcept;
+    [[nodiscard]] TriBool is_variable() const noexcept;
 
     /**
-     * Checks weather the node is a BlankNode. If yes, it is safe to convert it with `auto bnode = (BlankNode) rdf_node;`
-     * @return if this is a BlankNode
+     * Checks whether the node is a blank node
+     * @return err if this is null, otherwise true iff this is a blank node
      */
-    [[nodiscard]] bool is_blank_node() const noexcept;
+    [[nodiscard]] TriBool is_blank_node() const noexcept;
 
     /**
-     * Checks weather the node is a IRI. If yes, it is safe to convert it with `auto iri = (Literal) rdf_node;`
-     * @return if this is a IRI
+     * Checks whether the node is a iri
+     * @return err if this is null, otherwise true iff this is a iri
      */
-    [[nodiscard]] bool is_iri() const noexcept;
+    [[nodiscard]] TriBool is_iri() const noexcept;
 
     /**
      * @return if the current value of this node is stored inside the handle instead of the node storage

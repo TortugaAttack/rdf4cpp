@@ -27,15 +27,19 @@ int main(int argc, char **argv) {
     }
 }
 
+void check_literal_type(Node const &lit) {
+    CHECK_FALSE(lit.is_blank_node());
+    CHECK(lit.is_literal());
+    CHECK_FALSE(lit.is_variable());
+    CHECK_FALSE(lit.is_iri());
+}
+
 TEST_CASE("Literal - Check for only lexical form") {
 
     auto iri = IRI{"http://www.w3.org/2001/XMLSchema#string"};
     auto lit1 = Literal::make_simple("Bunny");
 
-    CHECK(not lit1.is_blank_node());
-    CHECK(lit1.is_literal());
-    CHECK(not lit1.is_variable());
-    CHECK(not lit1.is_iri());
+    check_literal_type(lit1);
     CHECK_EQ(lit1.lexical_form(), "Bunny");
     CHECK_EQ(lit1.datatype(), iri);
     CHECK_EQ(lit1.language_tag(), "");
@@ -43,15 +47,11 @@ TEST_CASE("Literal - Check for only lexical form") {
 }
 
 TEST_CASE("Literal - Check for lexical form with IRI") {
-
     SUBCASE("string datatype") {
         auto iri = IRI{"http://www.w3.org/2001/XMLSchema#string"};
         auto lit1 = Literal::make_typed("Bunny", iri);
 
-        CHECK(not lit1.is_blank_node());
-        CHECK(lit1.is_literal());
-        CHECK(not lit1.is_variable());
-        CHECK(not lit1.is_iri());
+        check_literal_type(lit1);
         CHECK_EQ(lit1.lexical_form(), "Bunny");
         CHECK_EQ(lit1.datatype(), iri);
         CHECK_EQ(lit1.language_tag(), "");
@@ -66,10 +66,7 @@ TEST_CASE("Literal - Check for lexical form with IRI") {
         auto iri = IRI{"http://www.w3.org/2001/XMLSchema#int"};
         auto lit1 = Literal::make_typed("101", iri);
 
-        CHECK(not lit1.is_blank_node());
-        CHECK(lit1.is_literal());
-        CHECK(not lit1.is_variable());
-        CHECK(not lit1.is_iri());
+        check_literal_type(lit1);
         CHECK_EQ(lit1.lexical_form(), "101");
         CHECK_EQ(lit1.datatype(), iri);
         CHECK_EQ(lit1.language_tag(), "");
@@ -79,10 +76,7 @@ TEST_CASE("Literal - Check for lexical form with IRI") {
         auto iri = IRI{"http://www.w3.org/2001/XMLSchema#date"};
         auto lit1 = Literal::make_typed("2021-11-21", iri);
 
-        CHECK(not lit1.is_blank_node());
-        CHECK(lit1.is_literal());
-        CHECK(not lit1.is_variable());
-        CHECK(not lit1.is_iri());
+        check_literal_type(lit1);
         CHECK_EQ(lit1.lexical_form(), "2021-11-21");
         CHECK_EQ(lit1.datatype(), iri);
         CHECK_EQ(lit1.language_tag(), "");
@@ -92,10 +86,7 @@ TEST_CASE("Literal - Check for lexical form with IRI") {
         auto iri = IRI{"http://www.w3.org/2001/XMLSchema#decimal"};
         auto lit1 = Literal::make_typed("2.0", iri);
 
-        CHECK(not lit1.is_blank_node());
-        CHECK(lit1.is_literal());
-        CHECK(not lit1.is_variable());
-        CHECK(not lit1.is_iri());
+        check_literal_type(lit1);
         CHECK_EQ(lit1.lexical_form(), "2.0");
         CHECK_EQ(lit1.datatype(), iri);
         CHECK_EQ(lit1.language_tag(), "");
@@ -105,10 +96,7 @@ TEST_CASE("Literal - Check for lexical form with IRI") {
         auto iri = IRI{"http://www.w3.org/2001/XMLSchema#boolean"};
         auto lit1 = Literal::make_typed("true", iri);
 
-        CHECK(not lit1.is_blank_node());
-        CHECK(lit1.is_literal());
-        CHECK(not lit1.is_variable());
-        CHECK(not lit1.is_iri());
+        check_literal_type(lit1);
         CHECK_EQ(lit1.lexical_form(), "true");
         CHECK_EQ(lit1.datatype(), iri);
         CHECK_EQ(lit1.language_tag(), "");
@@ -118,10 +106,7 @@ TEST_CASE("Literal - Check for lexical form with IRI") {
         auto iri = IRI{"http://www.w3.org/2001/XMLSchema#boolean"};
         auto lit1 = Literal::make_typed("false", iri);
 
-        CHECK(not lit1.is_blank_node());
-        CHECK(lit1.is_literal());
-        CHECK(not lit1.is_variable());
-        CHECK(not lit1.is_iri());
+        check_literal_type(lit1);
         CHECK_EQ(lit1.lexical_form(), "false");
         CHECK_EQ(lit1.datatype(), iri);
         CHECK_EQ(lit1.language_tag(), "");
@@ -131,10 +116,7 @@ TEST_CASE("Literal - Check for lexical form with IRI") {
         auto iri = IRI{"http://www.w3.org/2001/XMLSchema#boolean"};
         auto lit1 = Literal::make_typed("0", iri);
 
-        CHECK(not lit1.is_blank_node());
-        CHECK(lit1.is_literal());
-        CHECK(not lit1.is_variable());
-        CHECK(not lit1.is_iri());
+        check_literal_type(lit1);
         CHECK_EQ(lit1.lexical_form(), "false");
         CHECK_EQ(lit1.datatype(), iri);
         CHECK_EQ(lit1.language_tag(), "");
@@ -144,10 +126,7 @@ TEST_CASE("Literal - Check for lexical form with IRI") {
         auto iri = IRI{"http://www.w3.org/2001/XMLSchema#boolean"};
         auto lit1 = Literal::make_typed("1", iri);
 
-        CHECK(not lit1.is_blank_node());
-        CHECK(lit1.is_literal());
-        CHECK(not lit1.is_variable());
-        CHECK(not lit1.is_iri());
+        check_literal_type(lit1);
         CHECK_EQ(lit1.lexical_form(), "true");
         CHECK_EQ(lit1.datatype(), iri);
         CHECK_EQ(lit1.language_tag(), "");
@@ -160,10 +139,7 @@ TEST_CASE("Literal - Check for lexical form with language tag") {
     auto iri = IRI{"http://www.w3.org/1999/02/22-rdf-syntax-ns#langString"};
     auto lit1 = Literal::make_lang_tagged("Bunny", "en");
 
-    CHECK(not lit1.is_blank_node());
-    CHECK(lit1.is_literal());
-    CHECK(not lit1.is_variable());
-    CHECK(not lit1.is_iri());
+    check_literal_type(lit1);
     CHECK_EQ(lit1.lexical_form(), "Bunny");
     CHECK_EQ(lit1.datatype(), iri);
     CHECK_EQ(lit1.language_tag(), "en");

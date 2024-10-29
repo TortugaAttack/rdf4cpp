@@ -103,17 +103,17 @@ Node::operator std::string() const noexcept {
     }
 }
 
-bool Node::is_literal() const noexcept {
-    return !handle_.null() && handle_.is_literal();
+TriBool Node::is_literal() const noexcept {
+    return handle_.is_literal();
 }
-bool Node::is_variable() const noexcept {
-    return !handle_.null() && handle_.is_variable();
+TriBool Node::is_variable() const noexcept {
+    return handle_.is_variable();
 }
-bool Node::is_blank_node() const noexcept {
-    return !handle_.null() && handle_.is_blank_node();
+TriBool Node::is_blank_node() const noexcept {
+    return handle_.is_blank_node();
 }
-bool Node::is_iri() const noexcept {
-    return !handle_.null() && handle_.is_iri();
+TriBool Node::is_iri() const noexcept {
+    return handle_.is_iri();
 }
 
 bool Node::is_inlined() const noexcept {
