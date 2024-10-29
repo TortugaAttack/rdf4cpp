@@ -3,42 +3,44 @@
 #include <rdf4cpp/InvalidNode.hpp>
 #include <rdf4cpp/util/CharMatcher.hpp>
 #include <rdf4cpp/writer/TryWrite.hpp>
+
 #include <uni_algo/all.h>
+
+#include <cstring>
 
 namespace rdf4cpp::query {
 
-namespace inlining {
-    inline constexpr size_t max_inlined_name_len = (storage::identifier::NodeID::width / 8) - 1; // -1 for anonymous tagging boolean
+namespace detail_variable_inlining {
+    inline constexpr size_t max_inlined_name_len = (storage::identifier::NodeID::width / (sizeof(char) * 8)) - 1; // -1 for anonymous tagging boolean
 
     struct InlinedRepr {
         char name[max_inlined_name_len];
         bool is_anonymous;
 
-        [[nodiscard]] std::pair<std::string_view, bool> view() && {
-            auto const is_anon = std::exchange(is_anonymous, false);
-            return std::make_pair(std::string_view{name}, is_anon);
+        [[nodiscard]] storage::view::VariableBackendView view() const {
+            return storage::view::VariableBackendView{.name = std::string_view{name, strnlen(name, max_inlined_name_len)},
+                                                      .is_anonymous =  is_anonymous};
         }
 
-        auto operator<=>(InlinedRepr const &other) const noexcept = default;
+        std::strong_ordering operator<=>(InlinedRepr const &other) const noexcept {
+            return view() <=> other.view();
+        }
     };
 
-    union InlineTransmuter {
-        storage::identifier::NodeID node_id;
-        InlinedRepr inlined;
-    };
-
-    [[nodiscard]] storage::identifier::NodeBackendID try_get_inlined(std::string_view str, bool is_anon) noexcept {
+    [[nodiscard]] inline storage::identifier::NodeBackendID try_get_inlined(std::string_view const name, bool const is_anonymous) noexcept {
         using namespace storage::identifier;
 
-        if (str.size() > max_inlined_name_len) {
+        if (name.size() > max_inlined_name_len) {
             return NodeBackendID{};
         }
 
         InlinedRepr inlined_data;
-        inlined_data.is_anonymous = is_anon;
-        memcpy(&inlined_data.name, str.data(), str.size());
-        if (str.size() < max_inlined_name_len) {
-            inlined_data.name[str.size()] = '\0'; // if name is shorter than max, put null terminator
+        inlined_data.is_anonymous = is_anonymous;
+
+        memcpy(&inlined_data.name, name.data(), name.size());
+        if (name.size() < max_inlined_name_len) {
+            // if name is shorter than max, put null terminator
+            inlined_data.name[name.size()] = '\0';
         }
 
         auto const node_id = std::bit_cast<NodeID>(inlined_data);
@@ -46,12 +48,12 @@ namespace inlining {
         return NodeBackendID{node_id, RDFNodeType::Variable, true};
     }
 
-    [[nodiscard]] InlinedRepr from_inlined(storage::identifier::NodeBackendID id) {
-        assert(id.is_inlined());
+    [[nodiscard]] constexpr InlinedRepr from_inlined(storage::identifier::NodeBackendID id) noexcept {
+        assert(id.is_inlined() && id.is_variable());
         return std::bit_cast<InlinedRepr>(id.node_id());
     }
 
-} // namespace inlining
+} // namespace detail_variable_inlining
 
 Variable::Variable() noexcept : Node{storage::identifier::NodeBackendHandle{{}, storage::identifier::RDFNodeType::Variable, {}}} {
 }
@@ -71,7 +73,7 @@ Variable Variable::make_anonymous(std::string_view name, storage::DynNodeStorage
 
 Variable Variable::make_unchecked(std::string_view name, bool anonymous, storage::DynNodeStoragePtr node_storage) {
     auto const node_backend_id = [&]() {
-        if (auto const inlined_id = inlining::try_get_inlined(name, anonymous); !inlined_id.null()) {
+        if (auto const inlined_id = detail_variable_inlining::try_get_inlined(name, anonymous); !inlined_id.null()) {
             return inlined_id;
         }
 
@@ -113,7 +115,7 @@ Variable Variable::try_get_in_node_storage(storage::DynNodeStoragePtr node_stora
 
 Variable Variable::find(std::string_view name, bool anonymous, storage::DynNodeStoragePtr node_storage) noexcept {
     auto const nid = [&]() {
-        if (auto const inlined_id = inlining::try_get_inlined(name, anonymous); !inlined_id.null()) {
+        if (auto const inlined_id = detail_variable_inlining::try_get_inlined(name, anonymous); !inlined_id.null()) {
             return inlined_id;
         }
 
@@ -135,7 +137,7 @@ Variable Variable::find_anonymous(std::string_view name, storage::DynNodeStorage
 
 bool Variable::is_anonymous() const {
     if (handle_.is_inlined()) {
-        return inlining::from_inlined(handle_.id()).is_anonymous;
+        return detail_variable_inlining::from_inlined(handle_.id()).is_anonymous;
     }
 
     // TODO: encode is_anonymous into variable ID
@@ -144,8 +146,8 @@ bool Variable::is_anonymous() const {
 
 CowString Variable::name() const {
     if (handle_.is_inlined()) {
-        auto inlined_repr = inlining::from_inlined(handle_.id());
-        auto [name, _] = std::move(inlined_repr).view();
+        auto const inlined_repr = detail_variable_inlining::from_inlined(handle_.id());
+        auto const name = inlined_repr.view().name;
 
         return CowString{CowString::owned, std::string{name}};
     }
@@ -170,7 +172,7 @@ bool Variable::serialize(writer::BufWriterParts const writer) const noexcept {
     };
 
     if (handle_.is_inlined()) {
-        auto backend = inlining::from_inlined(handle_.id());
+        auto backend = detail_variable_inlining::from_inlined(handle_.id());
         auto const [name, is_anon] = std::move(backend).view();
 
         return run_ser(name, is_anon);
@@ -226,21 +228,34 @@ void Variable::validate(std::string_view n, bool anonymous) {
 }
 
 std::strong_ordering Variable::order(Variable const &other) const noexcept {
-    if (handle_.is_inlined()) {
+    if (is_inlined()) {
         if (other.is_inlined()) {
-            return inlining::from_inlined(handle_.id()) <=> inlining::from_inlined(other.handle_.id());
+            return detail_variable_inlining::from_inlined(handle_.id()) <=> detail_variable_inlining::from_inlined(other.handle_.id());
         }
 
-        // if this is inlined but other is not it means that the string of this must be shorter than that of other
-        // TODO what about anon
+        // this is inlined but other is not, this means that the string of this must be smaller
+        // than the one of other and is_anonymous has lower compare prio than string
         return std::strong_ordering::less;
-    }
+    } else {
+        if (other.is_inlined()) {
+            // same reasoning as above
+            return std::strong_ordering::greater;
+        }
 
-    return handle_.variable_backend() <=> other.handle_.variable_backend();
+        return handle_.variable_backend() <=> other.handle_.variable_backend();
+    }
+}
+
+bool Variable::order_eq(Variable const &other) const noexcept {
+    return order(other) == std::strong_ordering::equal;
+}
+bool Variable::order_ne(Variable const &other) const noexcept {
+    return !order_eq(other);
 }
 
 bool Variable::eq(Variable const &other) const noexcept {
-    return order(other) == std::strong_ordering::equal;
+    // for variables order_eq and eq are the same
+    return order_eq(other);
 }
 bool Variable::ne(Variable const &other) const noexcept {
     return !eq(other);

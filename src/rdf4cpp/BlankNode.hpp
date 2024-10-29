@@ -3,6 +3,7 @@
 
 #include <ostream>
 #include <rdf4cpp/Node.hpp>
+#include <rdf4cpp/CowString.hpp>
 
 namespace rdf4cpp {
 
@@ -57,12 +58,20 @@ struct BlankNode : Node {
      * Get the string identifier of this. For BlankNode `_:abc` the identifier is `abc`.
      * @return string identifier
      */
-    [[nodiscard]] std::string_view identifier() const noexcept;
+    [[nodiscard]] CowString identifier() const noexcept;
 
     /**
      * See Node::serialize
      */
     bool serialize(writer::BufWriterParts writer) const noexcept;
+
+    [[nodiscard]] std::strong_ordering order(BlankNode const &other) const noexcept;
+
+    [[nodiscard]] bool order_eq(BlankNode const &other) const noexcept;
+    [[nodiscard]] bool order_ne(BlankNode const &other) const noexcept;
+
+    [[nodiscard]] bool eq(BlankNode const &other) const noexcept;
+    [[nodiscard]] bool ne(BlankNode const &other) const noexcept;
 
     [[nodiscard]] explicit operator std::string() const noexcept;
 

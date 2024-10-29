@@ -71,6 +71,9 @@ public:
 
     [[nodiscard]] std::strong_ordering order(Variable const &other) const noexcept;
 
+    [[nodiscard]] bool order_eq(Variable const &other) const noexcept;
+    [[nodiscard]] bool order_ne(Variable const &other) const noexcept;
+
     [[nodiscard]] bool eq(Variable const &other) const noexcept;
     [[nodiscard]] bool ne(Variable const &other) const noexcept;
 

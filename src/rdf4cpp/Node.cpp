@@ -144,7 +144,7 @@ TriBool Node::eq_impl(Node const &other) const noexcept {
             return handle_.iri_backend() == other.handle_.iri_backend();
         }
         case RDFNodeType::BNode: {
-            return handle_.bnode_backend() == other.handle_.bnode_backend();
+            return BlankNode{handle_}.eq(BlankNode{other.handle_});
         }
         case RDFNodeType::Variable: {
             return query::Variable{handle_}.eq(query::Variable{other.handle_});
@@ -202,7 +202,7 @@ std::strong_ordering Node::order(Node const &other) const noexcept {
         case storage::identifier::RDFNodeType::IRI:
             return this->handle_.iri_backend() <=> other.handle_.iri_backend();
         case storage::identifier::RDFNodeType::BNode:
-            return this->handle_.bnode_backend() <=> other.handle_.bnode_backend();
+            return BlankNode{handle_}.order(BlankNode{other.handle_});
         case storage::identifier::RDFNodeType::Literal:
             return Literal{handle_}.order(Literal{other.handle_});
         case storage::identifier::RDFNodeType::Variable:
