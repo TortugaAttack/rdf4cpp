@@ -4,6 +4,8 @@
 #include <rdf4cpp/writer/TryWrite.hpp>
 #include <uni_algo/all.h>
 
+#include <cstring>
+
 namespace rdf4cpp {
 
 namespace detail_bnode_inlining {
