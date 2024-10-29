@@ -34,17 +34,12 @@ namespace detail_variable_inlining {
             return NodeBackendID{};
         }
 
-        InlinedRepr inlined_data;
+        InlinedRepr inlined_data{};
         inlined_data.is_anonymous = is_anonymous;
-
         memcpy(&inlined_data.name, name.data(), name.size());
-        if (name.size() < max_inlined_name_len) {
-            // if name is shorter than max, put null terminator
-            inlined_data.name[name.size()] = '\0';
-        }
+        // since inlined_data is initialized, there are implicitly nulls after the string if size is less than max
 
         auto const node_id = std::bit_cast<NodeID>(inlined_data);
-
         return NodeBackendID{node_id, RDFNodeType::Variable, true};
     }
 

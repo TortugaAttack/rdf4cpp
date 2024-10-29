@@ -28,16 +28,11 @@ namespace detail_bnode_inlining {
             return NodeBackendID{};
         }
 
-        InlinedRepr inlined_data;
-
+        InlinedRepr inlined_data{};
         memcpy(&inlined_data.identifier, identifier.data(), identifier.size());
-        if (identifier.size() < max_inlined_name_len) {
-            // if name is shorter than max, put null terminator
-            inlined_data.identifier[identifier.size()] = '\0';
-        }
+        // since inlined_data is initialized, there are implicitly nulls after the string if size is less than max
 
         auto const node_id = std::bit_cast<NodeID>(inlined_data);
-
         return NodeBackendID{node_id, RDFNodeType::BNode, true};
     }
 
