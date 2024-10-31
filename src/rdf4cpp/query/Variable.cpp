@@ -14,7 +14,7 @@ namespace detail_variable_inlining {
     inline constexpr size_t max_inlined_name_len = (storage::identifier::NodeID::width / (sizeof(char) * 8)) - 1; // -1 for anonymous tagging boolean
 
     struct InlinedRepr {
-        char name[max_inlined_name_len];
+        char name[max_inlined_name_len]{};
         bool is_anonymous;
 
         [[nodiscard]] storage::view::VariableBackendView view() const {
@@ -27,7 +27,7 @@ namespace detail_variable_inlining {
         }
     };
 
-    [[nodiscard]] inline storage::identifier::NodeBackendID try_get_inlined(std::string_view const name, bool const is_anonymous) noexcept {
+    [[nodiscard]] inline storage::identifier::NodeBackendID try_into_inlined(std::string_view const name, bool const is_anonymous) noexcept {
         using namespace storage::identifier;
 
         if (name.size() > max_inlined_name_len) {
@@ -68,7 +68,7 @@ Variable Variable::make_anonymous(std::string_view name, storage::DynNodeStorage
 
 Variable Variable::make_unchecked(std::string_view name, bool anonymous, storage::DynNodeStoragePtr node_storage) {
     auto const node_backend_id = [&]() {
-        if (auto const inlined_id = detail_variable_inlining::try_get_inlined(name, anonymous); !inlined_id.null()) {
+        if (auto const inlined_id = detail_variable_inlining::try_into_inlined(name, anonymous); !inlined_id.null()) {
             return inlined_id;
         }
 
@@ -110,7 +110,7 @@ Variable Variable::try_get_in_node_storage(storage::DynNodeStoragePtr node_stora
 
 Variable Variable::find(std::string_view name, bool anonymous, storage::DynNodeStoragePtr node_storage) noexcept {
     auto const nid = [&]() {
-        if (auto const inlined_id = detail_variable_inlining::try_get_inlined(name, anonymous); !inlined_id.null()) {
+        if (auto const inlined_id = detail_variable_inlining::try_into_inlined(name, anonymous); !inlined_id.null()) {
             return inlined_id;
         }
 
@@ -224,17 +224,17 @@ void Variable::validate(std::string_view n, bool anonymous) {
 
 std::strong_ordering Variable::order(Variable const &other) const noexcept {
     if (is_inlined()) {
+        auto const this_deinlined = detail_variable_inlining::from_inlined(handle_.id());
         if (other.is_inlined()) {
-            return detail_variable_inlining::from_inlined(handle_.id()) <=> detail_variable_inlining::from_inlined(other.handle_.id());
+            auto const other_deinlined = detail_variable_inlining::from_inlined(other.handle_.id());
+            return this_deinlined <=> other_deinlined;
         }
 
-        // this is inlined but other is not, this means that the string of this must be smaller
-        // than the one of other and is_anonymous has lower compare prio than string
-        return std::strong_ordering::less;
+        return this_deinlined.view() <=> other.handle_.variable_backend();
     } else {
         if (other.is_inlined()) {
-            // same reasoning as above
-            return std::strong_ordering::greater;
+            auto const other_deinlined = detail_variable_inlining::from_inlined(other.handle_.id());
+            return handle_.variable_backend() <=> other_deinlined.view();
         }
 
         return handle_.variable_backend() <=> other.handle_.variable_backend();

@@ -12,7 +12,7 @@ namespace detail_bnode_inlining {
     inline constexpr size_t max_inlined_name_len = storage::identifier::NodeID::width / (sizeof(char) * 8);
 
     struct InlinedRepr {
-        char identifier[max_inlined_name_len];
+        char identifier[max_inlined_name_len]{};
 
         [[nodiscard]] storage::view::BNodeBackendView view() const {
             return storage::view::BNodeBackendView{.identifier = std::string_view{identifier, strnlen(identifier, max_inlined_name_len)}};
@@ -23,7 +23,7 @@ namespace detail_bnode_inlining {
         }
     };
 
-    [[nodiscard]] inline storage::identifier::NodeBackendID try_get_inlined(std::string_view const identifier) noexcept {
+    [[nodiscard]] inline storage::identifier::NodeBackendID try_into_inlined(std::string_view const identifier) noexcept {
         using namespace storage::identifier;
 
         if (identifier.size() > max_inlined_name_len) {
@@ -65,7 +65,7 @@ BlankNode BlankNode::make(std::string_view identifier, storage::DynNodeStoragePt
 
 BlankNode BlankNode::make_unchecked(std::string_view identifier, storage::DynNodeStoragePtr node_storage) {
     auto const id = [&]() {
-        if (auto const inlined = detail_bnode_inlining::try_get_inlined(identifier); !inlined.null()) {
+        if (auto const inlined = detail_bnode_inlining::try_into_inlined(identifier); !inlined.null()) {
             return inlined;
         }
 
@@ -107,7 +107,7 @@ BlankNode BlankNode::try_get_in_node_storage(storage::DynNodeStoragePtr node_sto
 
 BlankNode BlankNode::find(std::string_view identifier, storage::DynNodeStoragePtr node_storage) noexcept {
     auto const nid = [&]() {
-        if (auto const inlined = detail_bnode_inlining::try_get_inlined(identifier); !inlined.null()) {
+        if (auto const inlined = detail_bnode_inlining::try_into_inlined(identifier); !inlined.null()) {
             return inlined;
         }
 
@@ -191,17 +191,17 @@ void BlankNode::validate(std::string_view v) {
 
 std::strong_ordering BlankNode::order(BlankNode const &other) const noexcept {
     if (is_inlined()) {
+        auto const this_delined = detail_bnode_inlining::from_inlined(handle_.id());
         if (other.is_inlined()) {
-            return detail_bnode_inlining::from_inlined(handle_.id()) <=> detail_bnode_inlining::from_inlined(other.handle_.id());
+            auto const other_deinlined = detail_bnode_inlining::from_inlined(other.handle_.id());
+            return this_delined <=> other_deinlined;
         }
 
-        // this is inlined but other is not, this means that the string of this must be smaller
-        // than the one of other
-        return std::strong_ordering::less;
+        return this_delined.view() <=> other.handle_.bnode_backend();
     } else {
         if (other.is_inlined()) {
-            // same reasoning as above
-            return std::strong_ordering::greater;
+            auto const other_deinlined = detail_bnode_inlining::from_inlined(other.handle_.id());
+            return handle_.bnode_backend() <=> other_deinlined.view();
         }
 
         return handle_.bnode_backend() <=> other.handle_.bnode_backend();

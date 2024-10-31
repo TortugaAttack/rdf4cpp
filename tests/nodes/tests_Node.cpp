@@ -372,6 +372,12 @@ TEST_CASE("variable inlining") {
     CHECK_EQ(v7.name(), "a");
 
     CHECK_EQ(v7.order(v6), std::strong_ordering::greater);
+
+    auto v8 = query::Variable::make_named("aaaaaa");
+    CHECK_FALSE(v8.is_inlined());
+    CHECK_FALSE(v8.is_anonymous());
+    CHECK_GT(v8.name().size(), v1.name().size());
+    CHECK_EQ(v8.order(v1), std::strong_ordering::less);
 }
 
 TEST_CASE("bnode inlining") {
@@ -409,4 +415,9 @@ TEST_CASE("bnode inlining") {
     CHECK(v4.is_inlined());
     CHECK_EQ(v4.identifier(), "a");
     CHECK_EQ(v4.order(v1), std::strong_ordering::less);
+
+    auto v5 = BlankNode::make("aaaaaaa");
+    CHECK_FALSE(v5.is_inlined());
+    CHECK_GT(v5.identifier().size(), v1.identifier().size());
+    CHECK_EQ(v5.order(v1), std::strong_ordering::less);
 }
