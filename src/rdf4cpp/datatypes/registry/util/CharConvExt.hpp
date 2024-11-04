@@ -11,8 +11,6 @@
 
 #include <rdf4cpp/InvalidNode.hpp>
 
-#include <boost/multiprecision/cpp_int.hpp>
-
 namespace rdf4cpp::datatypes::registry::util {
 /**
  * Serializes an integral type into its (SPARQL) representation.

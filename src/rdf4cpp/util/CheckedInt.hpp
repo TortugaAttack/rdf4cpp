@@ -7,8 +7,7 @@ namespace rdf4cpp::util {
  * Designed to be used in std::chrono::duration, but may be used standalone.
  * @tparam I Integer type to wrap
  */
-template<typename I>
-requires (std::integral<I> || std::same_as<I, __int128> || std::same_as<I, unsigned __int128>)
+template<std::integral I>
 struct CheckedIntegral {
 private:
     I value;
