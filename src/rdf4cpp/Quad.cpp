@@ -8,10 +8,10 @@ Quad::Quad(Node subject, Node predicate, Node object) noexcept : QuadPattern(IRI
 Quad::Quad(Node graph, Node subject, Node predicate, Node object) noexcept : QuadPattern(graph, subject, predicate, object) {}
 
 bool Quad::valid() const noexcept {
-    return (graph().is_iri() || (graph().is_blank_node() && !graph().null()))
-            && ((subject().is_iri() || subject().is_blank_node()) && !subject().null())
-            && (predicate().is_iri() && !predicate().null())
-            && ((object().is_iri() || object().is_literal() || object().is_blank_node()) && !object().null());
+    return (graph().is_iri() || graph().is_blank_node())
+            && (subject().is_iri() || subject().is_blank_node())
+            && (predicate().is_iri())
+            && (object().is_iri() || object().is_literal() || object().is_blank_node());
 }
 
 std::optional<Quad> Quad::create_validated(Node graph, Node subject, Node predicate, Node object) noexcept {

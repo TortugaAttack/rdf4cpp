@@ -77,10 +77,10 @@ struct BlankNode : Node {
 
     friend std::ostream &operator<<(std::ostream &os, BlankNode const &node);
 
-    [[nodiscard]] bool is_literal() const noexcept;
-    [[nodiscard]] bool is_variable() const noexcept;
-    [[nodiscard]] bool is_blank_node() const noexcept;
-    [[nodiscard]] bool is_iri() const noexcept;
+    bool is_literal() const noexcept = delete;
+    bool is_variable() const noexcept = delete;
+    bool is_blank_node() const noexcept = delete;
+    bool is_iri() const noexcept = delete;
 
     friend struct Node;
 };

@@ -64,10 +64,10 @@ public:
     [[nodiscard]] explicit operator std::string() const;
     friend std::ostream &operator<<(std::ostream &os, const Variable &variable);
 
-    [[nodiscard]] bool is_blank_node() const;
-    [[nodiscard]] bool is_literal() const;
-    [[nodiscard]] bool is_variable() const;
-    [[nodiscard]] bool is_iri() const;
+    bool is_blank_node() const = delete;
+    bool is_literal() const = delete;
+    bool is_variable() const = delete;
+    bool is_iri() const = delete;
 
     [[nodiscard]] std::strong_ordering order(Variable const &other) const noexcept;
 

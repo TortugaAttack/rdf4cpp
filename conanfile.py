@@ -30,14 +30,14 @@ class Recipe(ConanFile):
 
     def requirements(self):
         self.requires("boost/1.86.0", transitive_headers=True, libs=False)
-        self.requires("expected-lite/0.6.3", transitive_headers=True)
-        self.requires("re2/20221201")
-        self.requires("openssl/3.0.8")
+        self.requires("expected-lite/0.8.0", transitive_headers=True)
+        self.requires("re2/20230301") # using latest version that does not require abseil
+        self.requires("openssl/3.3.2")
         self.requires("uni-algo/1.2.0")
-        self.requires("highway/1.1.0")
-        self.requires("dice-hash/0.4.5", transitive_headers=True)
-        self.requires("dice-sparse-map/0.2.6", transitive_headers=True)
-        self.requires("dice-template-library/1.5.1", transitive_headers=True)
+        self.requires("highway/1.2.0")
+        self.requires("dice-hash/0.4.8", transitive_headers=True)
+        self.requires("dice-sparse-map/0.2.9", transitive_headers=True)
+        self.requires("dice-template-library/1.9.1", transitive_headers=True)
 
         if self.options.with_test_deps:
             self.test_requires("doctest/2.4.11")

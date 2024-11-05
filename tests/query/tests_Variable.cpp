@@ -6,15 +6,19 @@
 
 using namespace rdf4cpp;
 
+void check_variable_type(Node const &var) {
+    CHECK_FALSE(var.is_blank_node());
+    CHECK_FALSE(var.is_literal());
+    CHECK(var.is_variable());
+    CHECK_FALSE(var.is_iri());
+}
+
 TEST_CASE("Variable - Check for single node with anonymous default") {
 
     auto variable = query::Variable{"x"};
 
     CHECK(not variable.is_anonymous());
-    CHECK(not variable.is_blank_node());
-    CHECK(not variable.is_literal());
-    CHECK(variable.is_variable());
-    CHECK(not variable.is_iri());
+    check_variable_type(variable);
     CHECK(variable.name() == "x");
 }
 
@@ -23,10 +27,7 @@ TEST_CASE("Variable - Check for single node with anonymous true") {
     auto variable = query::Variable{"x", true};
 
     CHECK(variable.is_anonymous());
-    CHECK(not variable.is_blank_node());
-    CHECK(not variable.is_literal());
-    CHECK(variable.is_variable());
-    CHECK(not variable.is_iri());
+    check_variable_type(variable);
     CHECK(variable.name() == "x");
 }
 
@@ -35,10 +36,7 @@ TEST_CASE("Variable - Check for single node with anonymous false") {
     auto variable = query::Variable{"x", false};
 
     CHECK(not variable.is_anonymous());
-    CHECK(not variable.is_blank_node());
-    CHECK(not variable.is_literal());
-    CHECK(variable.is_variable());
-    CHECK(not variable.is_iri());
+    check_variable_type(variable);
     CHECK(variable.name() == "x");
 }
 

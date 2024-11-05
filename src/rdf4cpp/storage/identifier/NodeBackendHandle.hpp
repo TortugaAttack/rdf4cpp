@@ -58,7 +58,10 @@ public:
      * Check if the NodeBackendHandle identifies a IRI.
      * @return
      */
-    [[nodiscard]] constexpr bool is_iri() const noexcept {
+    [[nodiscard]] constexpr TriBool is_iri() const noexcept {
+        if (id_.null()) {
+            return TriBool::Err;
+        }
         return id_.is_iri();
     }
 
@@ -66,7 +69,10 @@ public:
      * Check if the NodeBackendHandle identifies a Literal.
      * @return
      */
-    [[nodiscard]] constexpr bool is_literal() const noexcept {
+    [[nodiscard]] constexpr TriBool is_literal() const noexcept {
+        if (id_.null()) {
+            return TriBool::Err;
+        }
         return id_.is_literal();
     }
 
@@ -74,7 +80,10 @@ public:
      * Check if the NodeBackendHandle identifies a BlankNode.
      * @return
      */
-    [[nodiscard]] constexpr bool is_blank_node() const noexcept {
+    [[nodiscard]] constexpr TriBool is_blank_node() const noexcept {
+        if (id_.null()) {
+            return TriBool::Err;
+        }
         return id_.is_blank_node();
     }
 
@@ -82,7 +91,10 @@ public:
      * Check if the NodeBackendHandle identifies a Variable.
      * @return
      */
-    [[nodiscard]] constexpr bool is_variable() const noexcept {
+    [[nodiscard]] constexpr TriBool is_variable() const noexcept {
+        if (id_.null()) {
+            return TriBool::Err;
+        }
         return id_.is_variable();
     }
 
