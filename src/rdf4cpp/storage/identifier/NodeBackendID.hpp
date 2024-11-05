@@ -163,7 +163,7 @@ static_assert(alignof(NodeBackendID) == alignof(uint64_t));
  * @return the LiteralType associated with that IRI
  */
 constexpr LiteralType iri_node_id_to_literal_type(NodeBackendID const id) noexcept {
-    assert(id.null() || id.is_iri());
+    assert(id.is_iri());
     auto const value = id.node_id().to_underlying();
 
     // all ids values below min_dynamic_datatype_id (except for the null id) are reserved for fixed datatype IRIs

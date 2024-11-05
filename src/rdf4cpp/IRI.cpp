@@ -140,6 +140,10 @@ IRI IRI::default_graph(storage::DynNodeStoragePtr node_storage) {
 }
 
 bool IRI::is_default_graph() const noexcept {
+    if (null()) {
+        return false;
+    }
+
     auto const expected_id = datatypes::registry::reserved_datatype_ids[datatypes::registry::default_graph_iri];
     auto const this_id = storage::identifier::iri_node_id_to_literal_type(backend_handle().id());
     return this_id == expected_id;
