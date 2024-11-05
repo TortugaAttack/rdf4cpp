@@ -14,7 +14,7 @@ namespace rdf4cpp {
 IRI::IRI(storage::identifier::NodeBackendHandle handle) noexcept : Node(handle) {
 }
 
-IRI::IRI() noexcept : Node{storage::identifier::NodeBackendHandle{{}, storage::identifier::RDFNodeType::IRI, {}}} {
+IRI::IRI() noexcept : Node{storage::identifier::NodeBackendHandle{}} {
 }
 
 IRI::IRI(std::string_view iri, storage::DynNodeStoragePtr node_storage)
@@ -133,19 +133,17 @@ IRI::operator std::string() const noexcept {
     });
 }
 
-bool IRI::is_literal() const noexcept { return false; }
-bool IRI::is_variable() const noexcept { return false; }
-bool IRI::is_blank_node() const noexcept { return false; }
-bool IRI::is_iri() const noexcept { return true; }
-
-
 IRI IRI::default_graph(storage::DynNodeStoragePtr node_storage) {
     auto const id = datatypes::registry::reserved_datatype_ids[datatypes::registry::default_graph_iri];
     return IRI{storage::identifier::NodeBackendHandle{storage::identifier::literal_type_to_iri_node_id(id),
                node_storage}};
 }
 
-bool IRI::is_default_graph() const noexcept {
+TriBool IRI::is_default_graph() const noexcept {
+    if (null()) {
+        return TriBool::Err;
+    }
+
     auto const expected_id = datatypes::registry::reserved_datatype_ids[datatypes::registry::default_graph_iri];
     auto const this_id = storage::identifier::iri_node_id_to_literal_type(backend_handle().id());
     return this_id == expected_id;

@@ -110,10 +110,10 @@ public:
     [[nodiscard]] explicit operator std::string() const noexcept;
     friend std::ostream &operator<<(std::ostream &os, const IRI &iri);
 
-    [[nodiscard]] bool is_literal() const noexcept;
-    [[nodiscard]] bool is_variable() const noexcept;
-    [[nodiscard]] bool is_blank_node() const noexcept;
-    [[nodiscard]] bool is_iri() const noexcept;
+    bool is_literal() const noexcept = delete;
+    bool is_variable() const noexcept = delete;
+    bool is_blank_node() const noexcept = delete;
+    bool is_iri() const noexcept = delete;
 
     friend struct Node;
     friend struct Literal;
@@ -126,9 +126,9 @@ public:
     [[nodiscard]] static IRI default_graph(storage::DynNodeStoragePtr node_storage = storage::default_node_storage);
 
     /**
-     * @return if this IRI is the default graph IRI
+     * @return err if this is null, otherwise true iff this IRI is the default graph IRI
      */
-    [[nodiscard]] bool is_default_graph() const noexcept;
+    [[nodiscard]] TriBool is_default_graph() const noexcept;
 };
 
 inline namespace shorthands {

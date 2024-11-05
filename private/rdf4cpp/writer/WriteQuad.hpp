@@ -39,9 +39,9 @@ bool write_pred(Node const pred, writer::BufWriterParts const writer) {
         return false;                       \
     }
 
-[[nodiscard]] inline bool is_default_graph(Node const &graph) noexcept {
+[[nodiscard]] inline bool print_graph(Node const &graph) noexcept {
     auto const g = graph.as_iri();
-    return g.is_default_graph();
+    return !g.is_default_graph();
 }
 
 template<writer::OutputFormat F, typename Q>
@@ -53,7 +53,7 @@ bool write_quad(Q const &s, writer::BufWriterParts const writer, writer::Seriali
                     return false;
                 }
 
-                if (!is_default_graph(s.graph())) {
+                if (print_graph(s.graph())) {
                     RDF4CPP_DETAIL_TRY_WRITE_NODE(s.graph());
                     RDF4CPP_DETAIL_TRY_WRITE_STR(" {\n");
 
@@ -94,7 +94,7 @@ bool write_quad(Q const &s, writer::BufWriterParts const writer, writer::Seriali
 
     if constexpr (!writer::format_has_prefix<F>) {
         if constexpr (writer::format_has_graph<F>) {
-            if (!is_default_graph(s.graph())) {
+            if (print_graph(s.graph())) {
                 RDF4CPP_DETAIL_TRY_WRITE_STR(" ");
                 RDF4CPP_DETAIL_TRY_WRITE_NODE(s.graph());
             }

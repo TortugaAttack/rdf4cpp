@@ -8,9 +8,9 @@ QuadPattern::QuadPattern(Node graph, Node subject, Node predicate, Node object) 
 }
 
 bool QuadPattern::valid() const noexcept {
-    return !graph().null() && (graph().is_iri() || graph().is_variable())
-            && !subject().null() && !subject().is_literal()
-            && !predicate().null() && (predicate().is_iri() || predicate().is_variable())
+    return (graph().is_iri() || graph().is_variable())
+            && !subject().is_literal()
+            && (predicate().is_iri() || predicate().is_variable())
             && !object().null();
 }
 

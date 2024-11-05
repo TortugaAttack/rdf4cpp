@@ -6,7 +6,7 @@
 #include <uni_algo/all.h>
 
 namespace rdf4cpp::query {
-Variable::Variable() noexcept : Node{storage::identifier::NodeBackendHandle{{}, storage::identifier::RDFNodeType::Variable, {}}} {
+Variable::Variable() noexcept : Node{storage::identifier::NodeBackendHandle{}} {
 }
 
 Variable::Variable(std::string_view name, bool anonymous, storage::DynNodeStoragePtr node_storage)
@@ -94,11 +94,6 @@ Variable::operator std::string() const {
         return this->serialize(w);
     });
 }
-
-bool Variable::is_literal() const { return false; }
-bool Variable::is_variable() const { return true; }
-bool Variable::is_blank_node() const { return false; }
-bool Variable::is_iri() const { return false; }
 
 std::ostream &operator<<(std::ostream &os, Variable const &variable) {
     writer::BufOStreamWriter w{os};
