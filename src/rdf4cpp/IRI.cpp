@@ -139,9 +139,9 @@ IRI IRI::default_graph(storage::DynNodeStoragePtr node_storage) {
                node_storage}};
 }
 
-bool IRI::is_default_graph() const noexcept {
+TriBool IRI::is_default_graph() const noexcept {
     if (null()) {
-        return false;
+        return TriBool::Err;
     }
 
     auto const expected_id = datatypes::registry::reserved_datatype_ids[datatypes::registry::default_graph_iri];

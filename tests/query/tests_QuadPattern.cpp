@@ -190,3 +190,8 @@ TEST_CASE("QuadPattern - Check for iterators and const-iterators") {
         CHECK(*(--e_const_itr) == graph1);
     }
 }
+
+TEST_CASE("null-graph string repr") {
+    Quad const q{Node{}, IRI{"http://test.com#s"}, IRI{"http://test.com#p"}, IRI{"http://test.com#o"}};
+    CHECK_EQ(std::string{q}, "<http://test.com#s> <http://test.com#p> <http://test.com#o> .");
+}
