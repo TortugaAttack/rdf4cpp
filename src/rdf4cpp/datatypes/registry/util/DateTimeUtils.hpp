@@ -173,7 +173,7 @@ inline rdf4cpp::TimePoint add_duration_to_date_time(const rdf4cpp::TimePoint& tp
     // only gets smaller, no overflow possible
     auto days = std::chrono::floor<std::chrono::days>(tp);
     auto time = tp - days;
-    rdf4cpp::Date ymd{days};
+    rdf4cpp::YearMonthDay ymd{days};
 
     int64_t m = static_cast<unsigned int>(ymd.month);
     m += ymd.year.year * 12; // it did fit into a 64 bit TimePoint before, so this cannot overflow
@@ -182,9 +182,9 @@ inline rdf4cpp::TimePoint add_duration_to_date_time(const rdf4cpp::TimePoint& tp
     int64_t const y = (m-1) / 12;
     m = std::abs(m-1) % 12 + 1;
 
-    ymd = rdf4cpp::Date{rdf4cpp::Year<>(y), std::chrono::month{static_cast<unsigned int>(m)}, ymd.day};
+    ymd = rdf4cpp::YearMonthDay{rdf4cpp::Year<>(y), std::chrono::month{static_cast<unsigned int>(m)}, ymd.day};
     if (!ymd.ok())
-        ymd = rdf4cpp::Date{ymd.year, ymd.month, std::chrono::last};
+        ymd = rdf4cpp::YearMonthDay{ymd.year, ymd.month, std::chrono::last};
 
     rdf4cpp::TimePoint date = ymd.to_time_point_local();
     date += time;
@@ -304,10 +304,10 @@ public:
     }
 };
 
-inline Date<> normalize(Date<> const &i) {
+inline YearMonthDay<> normalize(YearMonthDay<> const &i) {
     // normalize
     // see https://en.cppreference.com/w/cpp/chrono/year_month_day/operator_days
-    return Date{(i + std::chrono::months{0}).to_time_point()};
+    return YearMonthDay{(i + std::chrono::months{0}).to_time_point()};
 }
 
 template<std::integral I, I base = 10>

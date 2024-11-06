@@ -12,7 +12,7 @@ capabilities::Default<xsd_date>::cpp_type capabilities::Default<xsd_date>::from_
     auto month = parse_date_time_fragment<std::chrono::month, unsigned int, '-', identifier>(s);
     auto tz = rdf4cpp::Timezone::parse_optional(s, identifier);
     auto day = parse_date_time_fragment<std::chrono::day, unsigned int, '\0', identifier>(s);
-    auto date = Date{year, month, day};
+    auto date = YearMonthDay{year, month, day};
     if (registry::relaxed_parsing_mode && !date.ok()) {
         date = normalize(date);
     }
@@ -60,10 +60,10 @@ std::optional<storage::identifier::LiteralID> capabilities::Inlineable<xsd_date>
 template<>
 capabilities::Inlineable<xsd_date>::cpp_type capabilities::Inlineable<xsd_date>::from_inlined(storage::identifier::LiteralID inlined) noexcept {
     auto const i = util::unpack_integral<int64_t>(inlined);
-    return capabilities::Inlineable<xsd_date>::cpp_type{Date<>::time_point<int64_t>{Date<>::time_point<int64_t>::duration{i}}, std::nullopt};
+    return capabilities::Inlineable<xsd_date>::cpp_type{YearMonthDay<>::time_point<int64_t>{YearMonthDay<>::time_point<int64_t>::duration{i}}, std::nullopt};
 }
 
-rdf4cpp::TimePoint date_to_tp(Date<> const & d) noexcept {
+rdf4cpp::TimePoint date_to_tp(YearMonthDay<> const & d) noexcept {
     return rdf4cpp::util::construct_timepoint(d, rdf4cpp::util::time_point_replacement_time_of_day);
 }
 
@@ -76,7 +76,7 @@ capabilities::Subtype<xsd_date>::super_cpp_type<0> capabilities::Subtype<xsd_dat
 template<>
 template<>
 nonstd::expected<capabilities::Subtype<xsd_date>::cpp_type, DynamicError> capabilities::Subtype<xsd_date>::from_supertype<0>(super_cpp_type<0> const &value) noexcept {
-    return std::make_pair(Date{std::chrono::floor<std::chrono::days>(value.first)}, value.second);
+    return std::make_pair(YearMonthDay{std::chrono::floor<std::chrono::days>(value.first)}, value.second);
 }
 
 template<>

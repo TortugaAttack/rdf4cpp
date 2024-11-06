@@ -22,7 +22,7 @@ capabilities::Default<xsd_dateTimeStamp>::cpp_type capabilities::Default<xsd_dat
     }
     auto tz = rdf4cpp::Timezone::parse(s.substr(p), identifier);
     std::chrono::nanoseconds ms = parse_nanoseconds<identifier>(s.substr(0, p));
-    auto date = Date{year, month, day};
+    auto date = YearMonthDay{year, month, day};
     if (registry::relaxed_parsing_mode && !date.ok()) {
         date = normalize(date);
     }
@@ -43,7 +43,7 @@ capabilities::Default<xsd_dateTimeStamp>::cpp_type capabilities::Default<xsd_dat
     auto time = hours + minutes + ms;
     if (!registry::relaxed_parsing_mode) {
         if (time == std::chrono::hours{24}) {
-            date = Date{date.to_time_point_local() + std::chrono::days{1}};
+            date = YearMonthDay{date.to_time_point_local() + std::chrono::days{1}};
             if (!date.ok()) {
                 throw InvalidNode(std::format("{} parsing error: {} is invalid", identifier, date));
             }
