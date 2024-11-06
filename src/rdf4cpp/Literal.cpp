@@ -1184,7 +1184,7 @@ std::partial_ordering Literal::compare(Literal const &other) const noexcept {
     return this->compare_impl(other);
 }
 
-std::weak_ordering Literal::order(Literal const &other) const noexcept {
+std::strong_ordering Literal::order(Literal const &other) const noexcept {
     // default to equivalent; as required by compare_impl
     // see doc for compare_impl
     std::strong_ordering alternative_cmp_res = std::strong_ordering::equivalent;
@@ -1194,9 +1194,9 @@ std::weak_ordering Literal::order(Literal const &other) const noexcept {
         // return alternative ordering instead
         return alternative_cmp_res;
     } else if (cmp_res == std::partial_ordering::less) {
-        return std::weak_ordering::less;
+        return std::strong_ordering::less;
     } else { // cmp_res == std::partial_ordering::greater
-        return std::weak_ordering::greater;
+        return std::strong_ordering::greater;
     }
 }
 

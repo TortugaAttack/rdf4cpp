@@ -232,8 +232,8 @@ struct get_find_values<IRI> {
 };
 template<>
 struct get_find_values<BlankNode> {
-    static constexpr std::string_view t = "bl1";
-    static constexpr std::string_view v = "bl2";
+    static constexpr std::string_view t = "bl1aaaa";
+    static constexpr std::string_view v = "bl2aaaa";
 };
 
 TEST_CASE_TEMPLATE("IRI/BlankNode::find", T, IRI, BlankNode) {
@@ -338,4 +338,120 @@ TEST_CASE("null nodes") {
     run_checks(n3);
     run_checks(n4);
     run_checks(n5);
+}
+
+TEST_CASE("variable inlining") {
+    auto const check_node_storage_transfer = [](query::Variable const &var) {
+        storage::reference_node_storage::UnsyncReferenceNodeStorage ns;
+
+        auto again = [&]() {
+            if (var.is_anonymous()) {
+                return query::Variable::find_anonymous(var.name(), ns);
+            } else {
+                return query::Variable::find_named(var.name(), ns);
+            }
+        }();
+        CHECK_EQ(var.backend_handle().id(), again.backend_handle().id());
+
+        auto again2 = var.try_get_in_node_storage(ns);
+        CHECK_EQ(var.backend_handle().id(), again2.backend_handle().id());
+
+        auto again3 = var.to_node_storage(ns);
+        CHECK_EQ(var.backend_handle().id(), again3.backend_handle().id());
+    };
+
+    auto v1 = query::Variable::make_named("abcde");
+    CHECK(v1.is_inlined());
+    CHECK_FALSE(v1.is_anonymous());
+    CHECK_EQ(v1.name(), "abcde");
+    check_node_storage_transfer(v1);
+
+    auto v2 = query::Variable::make_named("fghij");
+    CHECK(v2.is_inlined());
+    CHECK_FALSE(v2.is_anonymous());
+    CHECK_EQ(v2.name(), "fghij");
+    CHECK_EQ(v1.name().size(), v2.name().size());
+    CHECK_EQ(v1.order(v2), std::strong_ordering::less);
+    check_node_storage_transfer(v2);
+
+    auto v3 = query::Variable::make_anonymous(v1.name());
+    CHECK(v3.is_inlined());
+    CHECK(v3.is_anonymous());
+    CHECK_EQ(v3.name(), "abcde");
+    CHECK_EQ(v3.name(), v1.name());
+    CHECK_NE(v3, v1);
+    CHECK_EQ(v3.order(v1), std::strong_ordering::greater);
+    check_node_storage_transfer(v3);
+
+    auto v4 = query::Variable::make_named("abcdef");
+    CHECK_FALSE(v4.is_inlined());
+    CHECK_FALSE(v4.is_anonymous());
+    CHECK_EQ(v4.name(), "abcdef");
+    CHECK_EQ(v4.order(v1), std::strong_ordering::greater);
+
+    auto v5 = query::Variable::make_anonymous("fghijk");
+    CHECK_FALSE(v5.is_inlined());
+    CHECK(v5.is_anonymous());
+    CHECK_EQ(v5.name(), "fghijk");
+    CHECK_EQ(v5.order(v4), std::strong_ordering::greater);
+
+    auto v6 = query::Variable::make_named("a");
+    CHECK(v6.is_inlined());
+    CHECK_FALSE(v6.is_anonymous());
+    CHECK_EQ(v6.name(), "a");
+
+    auto v7 = query::Variable::make_anonymous("a");
+    CHECK(v7.is_inlined());
+    CHECK(v7.is_anonymous());
+    CHECK_EQ(v7.name(), "a");
+
+    CHECK_EQ(v7.order(v6), std::strong_ordering::greater);
+
+    auto v8 = query::Variable::make_named("aaaaaa");
+    CHECK_FALSE(v8.is_inlined());
+    CHECK_FALSE(v8.is_anonymous());
+    CHECK_GT(v8.name().size(), v1.name().size());
+    CHECK_EQ(v8.order(v1), std::strong_ordering::less);
+}
+
+TEST_CASE("bnode inlining") {
+    auto const check_node_storage_transfer = [](BlankNode const &bnode) {
+        storage::reference_node_storage::UnsyncReferenceNodeStorage ns;
+
+        auto again = BlankNode::find(bnode.identifier(), ns);
+        CHECK_EQ(bnode.backend_handle().id(), again.backend_handle().id());
+
+        auto again2 = bnode.try_get_in_node_storage(ns);
+        CHECK_EQ(bnode.backend_handle().id(), again2.backend_handle().id());
+
+        auto again3 = bnode.to_node_storage(ns);
+        CHECK_EQ(bnode.backend_handle().id(), again3.backend_handle().id());
+    };
+
+    auto v1 = BlankNode::make("abcdef");
+    CHECK(v1.is_inlined());
+    CHECK_EQ(v1.identifier(), "abcdef");
+    check_node_storage_transfer(v1);
+
+    auto v2 = BlankNode::make("fghijk");
+    CHECK(v2.is_inlined());
+    CHECK_EQ(v2.identifier(), "fghijk");
+    CHECK_EQ(v1.identifier().size(), v2.identifier().size());
+    CHECK_EQ(v1.order(v2), std::strong_ordering::less);
+    check_node_storage_transfer(v2);
+
+    auto v3 = BlankNode::make("abcdefg");
+    CHECK_FALSE(v3.is_inlined());
+    CHECK_EQ(v3.identifier(), "abcdefg");
+    CHECK_EQ(v3.order(v1), std::strong_ordering::greater);
+
+    auto v4 = BlankNode::make("a");
+    CHECK(v4.is_inlined());
+    CHECK_EQ(v4.identifier(), "a");
+    CHECK_EQ(v4.order(v1), std::strong_ordering::less);
+
+    auto v5 = BlankNode::make("aaaaaaa");
+    CHECK_FALSE(v5.is_inlined());
+    CHECK_GT(v5.identifier().size(), v1.identifier().size());
+    CHECK_EQ(v5.order(v1), std::strong_ordering::less);
 }

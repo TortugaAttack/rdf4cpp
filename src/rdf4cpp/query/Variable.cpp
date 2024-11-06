@@ -3,9 +3,53 @@
 #include <rdf4cpp/InvalidNode.hpp>
 #include <rdf4cpp/util/CharMatcher.hpp>
 #include <rdf4cpp/writer/TryWrite.hpp>
+
 #include <uni_algo/all.h>
 
+#include <cstring>
+
 namespace rdf4cpp::query {
+
+namespace detail_variable_inlining {
+    inline constexpr size_t max_inlined_name_len = (storage::identifier::NodeID::width / (sizeof(char) * 8)) - 1; // -1 for anonymous tagging boolean
+
+    struct InlinedRepr {
+        char name[max_inlined_name_len]{};
+        bool is_anonymous;
+
+        [[nodiscard]] storage::view::VariableBackendView view() const {
+            return storage::view::VariableBackendView{.name = std::string_view{name, strnlen(name, max_inlined_name_len)},
+                                                      .is_anonymous =  is_anonymous};
+        }
+
+        std::strong_ordering operator<=>(InlinedRepr const &other) const noexcept {
+            return view() <=> other.view();
+        }
+    };
+
+    [[nodiscard]] inline storage::identifier::NodeBackendID try_into_inlined(std::string_view const name, bool const is_anonymous) noexcept {
+        using namespace storage::identifier;
+
+        if (name.size() > max_inlined_name_len) {
+            return NodeBackendID{};
+        }
+
+        InlinedRepr inlined_data{};
+        inlined_data.is_anonymous = is_anonymous;
+        memcpy(&inlined_data.name, name.data(), name.size());
+        // since inlined_data is initialized, there are implicitly nulls after the string if size is less than max
+
+        auto const node_id = std::bit_cast<NodeID>(inlined_data);
+        return NodeBackendID{node_id, RDFNodeType::Variable, true};
+    }
+
+    [[nodiscard]] constexpr InlinedRepr from_inlined(storage::identifier::NodeBackendID id) noexcept {
+        assert(id.is_inlined() && id.is_variable());
+        return std::bit_cast<InlinedRepr>(id.node_id());
+    }
+
+} // namespace detail_variable_inlining
+
 Variable::Variable() noexcept : Node{storage::identifier::NodeBackendHandle{}} {
 }
 
@@ -23,13 +67,24 @@ Variable Variable::make_anonymous(std::string_view name, storage::DynNodeStorage
 }
 
 Variable Variable::make_unchecked(std::string_view name, bool anonymous, storage::DynNodeStoragePtr node_storage) {
-    return Variable{storage::identifier::NodeBackendHandle{node_storage.find_or_make_id(storage::view::VariableBackendView{.name = name, .is_anonymous = anonymous}),
-                                                           node_storage}};
+    auto const node_backend_id = [&]() {
+        if (auto const inlined_id = detail_variable_inlining::try_into_inlined(name, anonymous); !inlined_id.null()) {
+            return inlined_id;
+        }
+
+        return node_storage.find_or_make_id(storage::view::VariableBackendView{.name = name, .is_anonymous = anonymous});
+    }();
+
+    return Variable{storage::identifier::NodeBackendHandle{node_backend_id, node_storage}};
 }
 
 Variable Variable::to_node_storage(storage::DynNodeStoragePtr node_storage) const {
     if (handle_.storage() == node_storage || null()) {
         return *this;
+    }
+
+    if (handle_.is_inlined()) {
+        return Variable{storage::identifier::NodeBackendHandle{handle_.id(), node_storage}};
     }
 
     auto const node_id = node_storage.find_or_make_id(handle_.variable_backend());
@@ -41,6 +96,10 @@ Variable Variable::try_get_in_node_storage(storage::DynNodeStoragePtr node_stora
         return *this;
     }
 
+    if (handle_.is_inlined()) {
+        return Variable{storage::identifier::NodeBackendHandle{handle_.id(), node_storage}};
+    }
+
     auto const node_id = node_storage.find_id(handle_.variable_backend());
     if (node_id.null()) {
         return Variable{};
@@ -50,10 +109,17 @@ Variable Variable::try_get_in_node_storage(storage::DynNodeStoragePtr node_stora
 }
 
 Variable Variable::find(std::string_view name, bool anonymous, storage::DynNodeStoragePtr node_storage) noexcept {
-    auto nid = node_storage.find_id(storage::view::VariableBackendView{.name = name, .is_anonymous = anonymous});
+    auto const nid = [&]() {
+        if (auto const inlined_id = detail_variable_inlining::try_into_inlined(name, anonymous); !inlined_id.null()) {
+            return inlined_id;
+        }
 
-    if (nid.null())
+        return node_storage.find_id(storage::view::VariableBackendView{.name = name, .is_anonymous = anonymous});
+    }();
+
+    if (nid.null()) {
         return Variable{};
+    }
 
     return Variable{storage::identifier::NodeBackendHandle{nid, node_storage}};
 }
@@ -65,11 +131,23 @@ Variable Variable::find_anonymous(std::string_view name, storage::DynNodeStorage
 }
 
 bool Variable::is_anonymous() const {
+    if (handle_.is_inlined()) {
+        return detail_variable_inlining::from_inlined(handle_.id()).is_anonymous;
+    }
+
     // TODO: encode is_anonymous into variable ID
-    return this->handle_.variable_backend().is_anonymous;
+    return handle_.variable_backend().is_anonymous;
 }
-std::string_view Variable::name() const {
-    return this->handle_.variable_backend().name;
+
+CowString Variable::name() const {
+    if (handle_.is_inlined()) {
+        auto const inlined_repr = detail_variable_inlining::from_inlined(handle_.id());
+        auto const name = inlined_repr.view().name;
+
+        return CowString{CowString::owned, std::string{name}};
+    }
+
+    return CowString{CowString::borrowed, handle_.variable_backend().name};
 }
 
 bool Variable::serialize(writer::BufWriterParts const writer) const noexcept {
@@ -77,16 +155,26 @@ bool Variable::serialize(writer::BufWriterParts const writer) const noexcept {
         return rdf4cpp::writer::write_str("null", writer);
     }
 
-    auto const backend = handle_.variable_backend();
+    auto const run_ser = [&writer](std::string_view name, bool is_anon) {
+        if (is_anon) {
+            RDF4CPP_DETAIL_TRY_WRITE_STR("_:");
+        } else {
+            RDF4CPP_DETAIL_TRY_WRITE_STR("?");
+        }
 
-    if (backend.is_anonymous) {
-        RDF4CPP_DETAIL_TRY_WRITE_STR("_:");
+        RDF4CPP_DETAIL_TRY_WRITE_STR(name);
+        return true;
+    };
+
+    if (handle_.is_inlined()) {
+        auto backend = detail_variable_inlining::from_inlined(handle_.id());
+        auto const [name, is_anon] = std::move(backend).view();
+
+        return run_ser(name, is_anon);
     } else {
-        RDF4CPP_DETAIL_TRY_WRITE_STR("?");
+        auto const backend = handle_.variable_backend();
+        return run_ser(backend.name, backend.is_anonymous);
     }
-
-    RDF4CPP_DETAIL_TRY_WRITE_STR(backend.name);
-    return true;
 }
 
 Variable::operator std::string() const {
@@ -127,6 +215,40 @@ void Variable::validate(std::string_view n, bool anonymous) {
         }
         ++it;
     }
+}
+
+std::strong_ordering Variable::order(Variable const &other) const noexcept {
+    if (is_inlined()) {
+        auto const this_deinlined = detail_variable_inlining::from_inlined(handle_.id());
+        if (other.is_inlined()) {
+            auto const other_deinlined = detail_variable_inlining::from_inlined(other.handle_.id());
+            return this_deinlined <=> other_deinlined;
+        }
+
+        return this_deinlined.view() <=> other.handle_.variable_backend();
+    } else {
+        if (other.is_inlined()) {
+            auto const other_deinlined = detail_variable_inlining::from_inlined(other.handle_.id());
+            return handle_.variable_backend() <=> other_deinlined.view();
+        }
+
+        return handle_.variable_backend() <=> other.handle_.variable_backend();
+    }
+}
+
+bool Variable::order_eq(Variable const &other) const noexcept {
+    return order(other) == std::strong_ordering::equal;
+}
+bool Variable::order_ne(Variable const &other) const noexcept {
+    return !order_eq(other);
+}
+
+bool Variable::eq(Variable const &other) const noexcept {
+    // for variables order_eq and eq are the same
+    return order_eq(other);
+}
+bool Variable::ne(Variable const &other) const noexcept {
+    return !eq(other);
 }
 
 }  // namespace rdf4cpp::query

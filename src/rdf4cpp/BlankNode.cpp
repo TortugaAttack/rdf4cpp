@@ -4,7 +4,47 @@
 #include <rdf4cpp/writer/TryWrite.hpp>
 #include <uni_algo/all.h>
 
+#include <cstring>
+
 namespace rdf4cpp {
+
+namespace detail_bnode_inlining {
+    inline constexpr size_t max_inlined_name_len = storage::identifier::NodeID::width / (sizeof(char) * 8);
+
+    struct InlinedRepr {
+        char identifier[max_inlined_name_len]{};
+
+        [[nodiscard]] storage::view::BNodeBackendView view() const {
+            return storage::view::BNodeBackendView{.identifier = std::string_view{identifier, strnlen(identifier, max_inlined_name_len)}};
+        }
+
+        std::strong_ordering operator<=>(InlinedRepr const &other) const noexcept {
+            return view() <=> other.view();
+        }
+    };
+
+    [[nodiscard]] inline storage::identifier::NodeBackendID try_into_inlined(std::string_view const identifier) noexcept {
+        using namespace storage::identifier;
+
+        if (identifier.size() > max_inlined_name_len) {
+            return NodeBackendID{};
+        }
+
+        InlinedRepr inlined_data{};
+        memcpy(&inlined_data.identifier, identifier.data(), identifier.size());
+        // since inlined_data is initialized, there are implicitly nulls after the string if size is less than max
+
+        auto const node_id = std::bit_cast<NodeID>(inlined_data);
+        return NodeBackendID{node_id, RDFNodeType::BNode, true};
+    }
+
+    [[nodiscard]] constexpr InlinedRepr from_inlined(storage::identifier::NodeBackendID id) noexcept {
+        assert(id.is_inlined() && id.is_blank_node());
+        return std::bit_cast<InlinedRepr>(id.node_id());
+    }
+
+} // namespace detail_bnode_inlining
+
 BlankNode::BlankNode() noexcept : Node{storage::identifier::NodeBackendHandle{}} {
 }
 
@@ -24,13 +64,24 @@ BlankNode BlankNode::make(std::string_view identifier, storage::DynNodeStoragePt
 }
 
 BlankNode BlankNode::make_unchecked(std::string_view identifier, storage::DynNodeStoragePtr node_storage) {
-    return BlankNode{storage::identifier::NodeBackendHandle{node_storage.find_or_make_id(storage::view::BNodeBackendView{.identifier = identifier}),
-                                                            node_storage}};
+    auto const id = [&]() {
+        if (auto const inlined = detail_bnode_inlining::try_into_inlined(identifier); !inlined.null()) {
+            return inlined;
+        }
+
+        return node_storage.find_or_make_id(storage::view::BNodeBackendView{.identifier = identifier});
+    }();
+
+    return BlankNode{storage::identifier::NodeBackendHandle{id, node_storage}};
 }
 
 BlankNode BlankNode::to_node_storage(storage::DynNodeStoragePtr node_storage) const {
     if (handle_.storage() == node_storage || null()) {
         return *this;
+    }
+
+    if (handle_.is_inlined()) {
+        return BlankNode{storage::identifier::NodeBackendHandle{handle_.id(), node_storage}};
     }
 
     auto const node_id = node_storage.find_or_make_id(handle_.bnode_backend());
@@ -42,6 +93,10 @@ BlankNode BlankNode::try_get_in_node_storage(storage::DynNodeStoragePtr node_sto
         return *this;
     }
 
+    if (handle_.is_inlined()) {
+        return BlankNode{storage::identifier::NodeBackendHandle{handle_.id(), node_storage}};
+    }
+
     auto const node_id = node_storage.find_id(handle_.bnode_backend());
     if (node_id.null()) {
         return BlankNode{};
@@ -51,23 +106,41 @@ BlankNode BlankNode::try_get_in_node_storage(storage::DynNodeStoragePtr node_sto
 }
 
 BlankNode BlankNode::find(std::string_view identifier, storage::DynNodeStoragePtr node_storage) noexcept {
-    auto nid = node_storage.find_id(storage::view::BNodeBackendView{.identifier = identifier});
-    if (nid.null())
+    auto const nid = [&]() {
+        if (auto const inlined = detail_bnode_inlining::try_into_inlined(identifier); !inlined.null()) {
+            return inlined;
+        }
+
+        return node_storage.find_id(storage::view::BNodeBackendView{.identifier = identifier});
+    }();
+
+    if (nid.null()) {
         return BlankNode{};
+    }
+
     return BlankNode{storage::identifier::NodeBackendHandle{nid, node_storage}};
 }
 
-std::string_view BlankNode::identifier() const noexcept { return handle_.bnode_backend().identifier; }
+CowString BlankNode::identifier() const noexcept {
+    if (handle_.is_inlined()) {
+        auto const inlined = detail_bnode_inlining::from_inlined(handle_.id());
+        auto const identifier = inlined.view().identifier;
+
+        return CowString{CowString::owned, std::string{identifier}};
+    }
+
+    return CowString{CowString::borrowed, handle_.bnode_backend().identifier};
+}
 
 bool BlankNode::serialize(writer::BufWriterParts const writer) const noexcept {
     if (null()) {
         return rdf4cpp::writer::write_str("null", writer);
     }
 
-    auto const backend = handle_.bnode_backend();
+    auto const ident = identifier();
 
     RDF4CPP_DETAIL_TRY_WRITE_STR("_:");
-    RDF4CPP_DETAIL_TRY_WRITE_STR(backend.identifier);
+    RDF4CPP_DETAIL_TRY_WRITE_STR(ident.view());
     return true;
 }
 
@@ -110,6 +183,42 @@ void BlankNode::validate(std::string_view v) {
     if (lastchar == '.') {
         throw InvalidNode(std::format("invalid blank node label {}", v));
     }
+}
+
+std::strong_ordering BlankNode::order(BlankNode const &other) const noexcept {
+    if (is_inlined()) {
+        auto const this_delined = detail_bnode_inlining::from_inlined(handle_.id());
+        if (other.is_inlined()) {
+            auto const other_deinlined = detail_bnode_inlining::from_inlined(other.handle_.id());
+            return this_delined <=> other_deinlined;
+        }
+
+        return this_delined.view() <=> other.handle_.bnode_backend();
+    } else {
+        if (other.is_inlined()) {
+            auto const other_deinlined = detail_bnode_inlining::from_inlined(other.handle_.id());
+            return handle_.bnode_backend() <=> other_deinlined.view();
+        }
+
+        return handle_.bnode_backend() <=> other.handle_.bnode_backend();
+    }
+}
+
+bool BlankNode::order_eq(BlankNode const &other) const noexcept {
+    return order(other) == std::strong_ordering::equivalent;
+}
+
+bool BlankNode::order_ne(BlankNode const &other) const noexcept {
+    return !order_eq(other);
+}
+
+bool BlankNode::eq(BlankNode const &other) const noexcept {
+    // there is no difference between order_eq and eq for blank nodes
+    return order_eq(other);
+}
+
+bool BlankNode::ne(BlankNode const &other) const noexcept {
+    return !eq(other);
 }
 
 inline namespace shorthands {

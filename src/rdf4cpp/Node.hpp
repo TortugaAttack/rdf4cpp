@@ -205,7 +205,7 @@ public:
      * based on their string representation, and thus have an ordering.
      * For Literals you can find information about the differences in Literal::order
      */
-    [[nodiscard]] std::weak_ordering order(Node const &other) const noexcept;
+    [[nodiscard]] std::strong_ordering order(Node const &other) const noexcept;
 
     /**
      * The equality function for SPARQL filters (FILTER).
