@@ -132,10 +132,9 @@ struct Timezone {
 
 using OptionalTimezone = std::optional<Timezone>;
 
-template<typename I = int64_t>
 struct Year {
     // adapted from https://howardhinnant.github.io/date_algorithms.html
-    I year = 0;
+    int64_t year = 0;
 
     [[nodiscard]] constexpr bool is_leap() const noexcept(noexcept(year % 100)) {
         return year % 4 == 0 && (year % 100 != 0 || year % 400 == 0);
@@ -143,61 +142,60 @@ struct Year {
 
     constexpr auto operator<=>(Year const &) const noexcept = default;
 
-    friend constexpr Year<I> operator+(Year<I> const &y, std::chrono::years d) noexcept(noexcept(y.year + d.count())) {
-        return Year<I>{y.year + d.count()};
+    friend constexpr Year operator+(Year const &y, std::chrono::years d) noexcept {
+        return Year{y.year + d.count()};
     }
-    friend constexpr Year<I> operator+(std::chrono::years d, Year<I> const &y) noexcept(noexcept(y.year + d.count())) {
-        return Year<I>{y.year + d.count()};
+    friend constexpr Year operator+(std::chrono::years d, Year const &y) noexcept {
+        return Year{y.year + d.count()};
     }
 
-    constexpr Year operator+=(std::chrono::years d) noexcept(noexcept(*this + d)) {
+    constexpr Year operator+=(std::chrono::years d) noexcept {
         *this = *this + d;
         return *this;
     }
 
-    friend constexpr Year<I> operator-(Year<I> const &y, std::chrono::years d) noexcept(noexcept(y.year - d.count())) {
-        return Year<I>{y.year - d.count()};
+    friend constexpr Year operator-(Year const &y, std::chrono::years d) noexcept {
+        return Year{y.year - d.count()};
     }
-    friend constexpr std::chrono::years operator-(Year<I> const &a, Year<I> const &b) noexcept(noexcept(a.year - b.year)) {
+    friend constexpr std::chrono::years operator-(Year const &a, Year const &b) noexcept {
         return std::chrono::years{a.year - b.year};
     }
 
-    constexpr Year operator-=(std::chrono::years d) noexcept(noexcept(*this - d)) {
+    constexpr Year operator-=(std::chrono::years d) noexcept {
         *this = *this - d;
         return *this;
     }
 
-    constexpr Year &operator++() noexcept(noexcept(*this += std::chrono::years{1})) {
+    constexpr Year &operator++() noexcept {
         *this += std::chrono::years{1};
         return *this;
     }
-    constexpr Year operator++(int) noexcept(noexcept(*this += std::chrono::years{1})) {
+    constexpr Year operator++(int) noexcept {
         Year r = *this;
         ++(*this);
         return r;
     }
 
-    constexpr Year &operator--() noexcept(noexcept(*this -= std::chrono::years{1})) {
+    constexpr Year &operator--() noexcept {
         *this -= std::chrono::years{1};
         return *this;
     }
-    constexpr Year operator--(int) noexcept(noexcept(*this -= std::chrono::years{1})) {
+    constexpr Year operator--(int) noexcept {
         Year r = *this;
         --(*this);
         return r;
     }
 
-    static constexpr Year max() {
-        return Year{std::numeric_limits<I>::max()};
+    static constexpr Year max() noexcept {
+        return Year{std::numeric_limits<int64_t>::max()};
     }
-    static constexpr Year min() {
-        return Year{std::numeric_limits<I>::min()};
+    static constexpr Year min() noexcept {
+        return Year{std::numeric_limits<int64_t>::min()};
     }
 };
 
-template<typename Y = int64_t>
 struct YearMonth {
-    Year<Y> year = Year<Y>{0};
+    Year year = Year{0};
     std::chrono::month month = std::chrono::month{1};
 
     constexpr auto operator<=>(YearMonth const &) const noexcept = default;
@@ -206,20 +204,20 @@ struct YearMonth {
         return month.ok();
     }
 
-    friend constexpr YearMonth<Y> operator+(YearMonth<Y> const &ym, std::chrono::years d) noexcept(noexcept(ym.year + d)) {
+    friend constexpr YearMonth operator+(YearMonth const &ym, std::chrono::years d) noexcept {
         return {ym.year + d, ym.month};
     }
-    friend constexpr YearMonth<Y> operator+(std::chrono::years d, YearMonth<Y> const &ym) noexcept(noexcept(ym.year + d)) {
+    friend constexpr YearMonth operator+(std::chrono::years d, YearMonth const &ym) noexcept {
         return {ym.year + d, ym.month};
     }
 
-    constexpr YearMonth& operator+=(std::chrono::years d) noexcept(noexcept(*this + d)){
+    constexpr YearMonth& operator+=(std::chrono::years d) noexcept {
         *this = *this + d;
         return *this;
     }
 
 private:
-    static constexpr YearMonth create_normalized(Y y, int64_t mo) noexcept(noexcept(--y) && noexcept(y += mo)) {
+    static constexpr YearMonth create_normalized(int64_t y, int64_t mo) noexcept {
         --mo;
         y += mo / 12;
         mo %= 12;
@@ -230,43 +228,42 @@ private:
         return {Year{y}, std::chrono::month{static_cast<unsigned int>(mo+1)}};
     }
 public:
-    friend constexpr YearMonth<Y> operator+(YearMonth<Y> const &ym, std::chrono::months d) noexcept(noexcept(create_normalized(ym.year.year, static_cast<unsigned int>(ym.month) + d.count()))) {
+    friend constexpr YearMonth operator+(YearMonth const &ym, std::chrono::months d) noexcept {
         return create_normalized(ym.year.year, static_cast<unsigned int>(ym.month) + d.count());
     }
-    friend constexpr YearMonth<Y> operator+(std::chrono::months d, YearMonth<Y> const &ym) noexcept(noexcept(create_normalized(ym.year.year, static_cast<unsigned int>(ym.month) + d.count()))) {
+    friend constexpr YearMonth operator+(std::chrono::months d, YearMonth const &ym) noexcept {
         return create_normalized(ym.year.year, static_cast<unsigned int>(ym.month) + d.count());
     }
 
-    constexpr YearMonth& operator+=(std::chrono::months d) noexcept(noexcept(*this + d)){
+    constexpr YearMonth& operator+=(std::chrono::months d) noexcept {
         *this = *this + d;
         return *this;
     }
 
-    friend constexpr YearMonth<Y> operator-(YearMonth<Y> const &ym, std::chrono::years d) noexcept(noexcept(ym.year - d)) {
+    friend constexpr YearMonth operator-(YearMonth const &ym, std::chrono::years d) noexcept {
         return {ym.year - d, ym.month};
     }
-    friend constexpr YearMonth<Y> operator-(YearMonth<Y> const &ym, std::chrono::months d) noexcept(noexcept(create_normalized(ym.year.year, static_cast<unsigned int>(ym.month) - d.count()))) {
+    friend constexpr YearMonth operator-(YearMonth const &ym, std::chrono::months d) noexcept {
         return create_normalized(ym.year.year, static_cast<unsigned int>(ym.month) - d.count());
     }
 
-    friend constexpr std::chrono::months operator-(YearMonth<Y> const &a, YearMonth<Y> const &b) {
+    friend constexpr std::chrono::months operator-(YearMonth const &a, YearMonth const &b) noexcept {
         return (a.year - b.year) + (a.month - b.month);
     }
 
-    constexpr YearMonth& operator-=(std::chrono::years d) noexcept(noexcept(*this - d)){
+    constexpr YearMonth& operator-=(std::chrono::years d) noexcept {
         *this = *this - d;
         return *this;
     }
-    constexpr YearMonth& operator-=(std::chrono::months d) noexcept(noexcept(*this - d)){
+    constexpr YearMonth& operator-=(std::chrono::months d) noexcept {
         *this = *this - d;
         return *this;
     }
 };
 
-template<typename Y = int64_t>
 struct YearMonthDay {
     // adapted from https://howardhinnant.github.io/date_algorithms.html
-    Year<Y> year = Year<Y>{0};
+    Year year = Year{0};
     std::chrono::month month = std::chrono::month{1};
     std::chrono::day day = std::chrono::day{1};
 
@@ -276,7 +273,7 @@ struct YearMonthDay {
     using time_point_local = std::chrono::time_point<std::chrono::local_t, std::chrono::duration<P, std::chrono::days::period>>;
 
 private:
-    static constexpr std::chrono::day last_day_in_month(Year<Y> year, std::chrono::month month) noexcept(noexcept(year.is_leap())) {
+    static constexpr std::chrono::day last_day_in_month(Year year, std::chrono::month month) noexcept {
         assert(month.ok());
         constexpr unsigned char common[] = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
         auto m = static_cast<unsigned int>(month);
@@ -285,25 +282,25 @@ private:
 
 public:
     constexpr YearMonthDay() noexcept  = default;
-    constexpr explicit YearMonthDay(std::chrono::year_month_day ymd) noexcept(noexcept(Year<Y>(static_cast<int>(ymd.year()))))
+    constexpr explicit YearMonthDay(std::chrono::year_month_day ymd) noexcept
         : year(static_cast<int>(ymd.year())), month(ymd.month()), day(ymd.day()) {
     }
-    constexpr YearMonthDay(Year<Y> const &y, std::chrono::month m, std::chrono::day d) noexcept
+    constexpr YearMonthDay(Year const &y, std::chrono::month m, std::chrono::day d) noexcept
         : year(y), month(m), day(d) {
     }
-    constexpr YearMonthDay(Year<Y> const &y, std::chrono::month m, std::chrono::last_spec) noexcept(noexcept(last_day_in_month(y, m)))
+    constexpr YearMonthDay(Year const &y, std::chrono::month m, std::chrono::last_spec) noexcept
         : year(y), month(m), day(last_day_in_month(y, m)) {
     }
-    constexpr YearMonthDay(YearMonth<Y> const & ym, std::chrono::day d) noexcept
+    constexpr YearMonthDay(YearMonth const & ym, std::chrono::day d) noexcept
             : year(ym.year), month(ym.month), day(d) {
     }
-    constexpr YearMonthDay(YearMonth<Y> const & ym, std::chrono::last_spec) noexcept(noexcept(YearMonthDay(ym.year, ym.month, std::chrono::last)))
+    constexpr YearMonthDay(YearMonth const & ym, std::chrono::last_spec) noexcept
         : YearMonthDay(ym.year, ym.month, std::chrono::last) {
     }
     template<typename P>
     constexpr explicit YearMonthDay(time_point<P> sd) noexcept(noexcept(P{} + P{} * P{} - P{} / P{})) {
         static_assert(std::numeric_limits<unsigned>::digits >= 18, "This algorithm has not been ported to a 16 bit unsigned integer");
-        static_assert(std::numeric_limits<Y>::digits >= 20, "This algorithm has not been ported to a 16 bit signed integer");
+        static_assert(std::numeric_limits<int64_t>::digits >= 20, "This algorithm has not been ported to a 16 bit signed integer");
         static_assert(std::numeric_limits<P>::digits >= 20, "This algorithm has not been ported to a 16 bit signed integer");
         P z = sd.time_since_epoch().count();
         z += 719468;
@@ -315,7 +312,7 @@ public:
         auto const mp = (5 * doy + 2) / 153;                       // [0, 11]
         auto const d = doy - (153 * mp + 2) / 5 + 1;               // [1, 31]
         auto const m = mp < 10 ? mp + 3 : mp - 9;                  // [1, 12]
-        year = Year<Y>{static_cast<Y>(y + (m <= 2))};
+        year = Year{static_cast<int64_t>(y + (m <= 2))};
         month = std::chrono::month{static_cast<unsigned>(m)};
         day = std::chrono::day{static_cast<unsigned>(d)};
     }
@@ -324,69 +321,67 @@ public:
         : YearMonthDay(time_point<P>(sd.time_since_epoch())) {
     }
 
-    template<typename P = boost::multiprecision::checked_int128_t>
-    [[nodiscard]] constexpr time_point<P> to_time_point() const noexcept(noexcept(P{} + P{} * P{} - P{} / P{})) {
+    [[nodiscard]] constexpr time_point<boost::multiprecision::checked_int128_t> to_time_point() const {
         static_assert(std::numeric_limits<unsigned>::digits >= 18, "This algorithm has not been ported to a 16 bit unsigned integer");
-        static_assert(std::numeric_limits<Y>::digits >= 20, "This algorithm has not been ported to a 16 bit signed integer");
-        static_assert(std::numeric_limits<P>::digits >= 20, "This algorithm has not been ported to a 16 bit signed integer");
-        P y = year.year;
+        static_assert(std::numeric_limits<int64_t>::digits >= 20, "This algorithm has not been ported to a 16 bit signed integer");
+        static_assert(std::numeric_limits<boost::multiprecision::checked_int128_t>::digits >= 20, "This algorithm has not been ported to a 16 bit signed integer");
+        boost::multiprecision::checked_int128_t y = year.year;
         auto m = static_cast<unsigned int>(month);
         auto d = static_cast<unsigned int>(day);
         y -= m <= 2;
-        P const era = (y >= 0 ? y : y - 399) / 400;
+        boost::multiprecision::checked_int128_t const era = (y >= 0 ? y : y - 399) / 400;
         auto const yoe = static_cast<unsigned>(y - era * 400);                 // [0, 399]
         unsigned const doy = (153 * (m > 2 ? m - 3 : m + 9) + 2) / 5 + d - 1;  // [0, 365]
         unsigned const doe = yoe * 365 + yoe / 4 - yoe / 100 + doy;            // [0, 146096]
         // note that the epoch of system_clock is specified as 00:00:00 Coordinated Universal Time (UTC), Thursday, 1 January 1970
-        return time_point<P>{typename time_point<P>::duration{era * 146097 + static_cast<P>(doe) - 719468}};
+        return time_point<boost::multiprecision::checked_int128_t>{typename time_point<boost::multiprecision::checked_int128_t>::duration{era * 146097 + static_cast<boost::multiprecision::checked_int128_t>(doe) - 719468}};
     }
-    template<typename P = boost::multiprecision::checked_int128_t>
-    [[nodiscard]] constexpr time_point_local<P> to_time_point_local() const noexcept(noexcept(P{} + P{} * P{} - P{} / P{})) {
-        return time_point_local<P>{to_time_point<P>().time_since_epoch()};
+    [[nodiscard]] constexpr time_point_local<boost::multiprecision::checked_int128_t> to_time_point_local() const{
+        return time_point_local<boost::multiprecision::checked_int128_t>{to_time_point().time_since_epoch()};
     }
 
-    [[nodiscard]] constexpr bool ok() const noexcept(noexcept(last_day_in_month(year, month))) {
+    [[nodiscard]] constexpr bool ok() const noexcept {
         return month.ok() && day.ok() && day <= last_day_in_month(year, month);
     }
 
     constexpr auto operator<=>(YearMonthDay const &) const noexcept = default;
 
-    friend constexpr YearMonthDay<Y> operator+(YearMonthDay<Y> const &ym, std::chrono::years d) noexcept(noexcept(ym.year + d)) {
+    friend constexpr YearMonthDay operator+(YearMonthDay const &ym, std::chrono::years d) noexcept {
         return {ym.year + d, ym.month, ym.day};
     }
-    friend constexpr YearMonthDay<Y> operator+(std::chrono::years d, YearMonthDay<Y> const &ym) noexcept(noexcept(ym.year + d)) {
+    friend constexpr YearMonthDay operator+(std::chrono::years d, YearMonthDay const &ym) noexcept {
         return {ym.year + d, ym.month, ym.day};
     }
 
-    constexpr YearMonthDay & operator+=(std::chrono::years d) noexcept(noexcept(*this + d)){
+    constexpr YearMonthDay & operator+=(std::chrono::years d) noexcept {
         *this = *this + d;
         return *this;
     }
 
-    friend constexpr YearMonthDay<Y> operator+(YearMonthDay const &d, std::chrono::months m) noexcept(noexcept(YearMonth<Y>{d.year, d.month} + m)) {
-        return YearMonthDay<Y>{YearMonth<Y>{d.year, d.month} + m, d.day};
+    friend constexpr YearMonthDay operator+(YearMonthDay const &d, std::chrono::months m) noexcept {
+        return YearMonthDay{YearMonth{d.year, d.month} + m, d.day};
     }
-    friend constexpr YearMonthDay<Y> operator+(std::chrono::months m, YearMonthDay const &d) noexcept(noexcept(YearMonth<Y>{d.year, d.month} + m)) {
-        return YearMonthDay<Y>{YearMonth<Y>{d.year, d.month} + m, d.day};
+    friend constexpr YearMonthDay operator+(std::chrono::months m, YearMonthDay const &d) noexcept {
+        return YearMonthDay{YearMonth{d.year, d.month} + m, d.day};
     }
 
-    constexpr YearMonthDay & operator+=(std::chrono::months d) noexcept(noexcept(*this + d)){
+    constexpr YearMonthDay & operator+=(std::chrono::months d) noexcept {
         *this = *this + d;
         return *this;
     }
 
-    friend constexpr YearMonthDay<Y> operator-(YearMonthDay<Y> const &ym, std::chrono::years d) noexcept(noexcept(ym.year - d)) {
+    friend constexpr YearMonthDay operator-(YearMonthDay const &ym, std::chrono::years d) noexcept {
         return {ym.year - d, ym.month, ym.day};
     }
-    friend constexpr YearMonthDay<Y> operator-(YearMonthDay<Y> const &d, std::chrono::months m) noexcept(noexcept(YearMonth<Y>{d.year, d.month} - m)) {
-        return YearMonthDay<Y>{YearMonth<Y>{d.year, d.month} - m, d.day};
+    friend constexpr YearMonthDay operator-(YearMonthDay const &d, std::chrono::months m) noexcept {
+        return YearMonthDay{YearMonth{d.year, d.month} - m, d.day};
     }
 
-    constexpr YearMonthDay & operator-=(std::chrono::years d) noexcept(noexcept(*this - d)){
+    constexpr YearMonthDay & operator-=(std::chrono::years d) noexcept {
         *this = *this - d;
         return *this;
     }
-    constexpr YearMonthDay & operator-=(std::chrono::months d) noexcept(noexcept(*this - d)){
+    constexpr YearMonthDay & operator-=(std::chrono::months d) noexcept {
         *this = *this - d;
         return *this;
     }
@@ -400,17 +395,17 @@ using ZonedTime = std::chrono::zoned_time<DurationNano, Timezone>;
 
 namespace util {
 
-inline constexpr YearMonthDay<> time_point_replacement_date{Year<>(1972), std::chrono::December, std::chrono::last};
+inline constexpr YearMonthDay time_point_replacement_date{Year(1972), std::chrono::December, std::chrono::last};
 inline constexpr DurationNano time_point_replacement_time_of_day{0};
 
-constexpr TimePoint construct_timepoint(YearMonthDay<> const &date, const DurationNano& time_of_day) {
+constexpr TimePoint construct_timepoint(YearMonthDay const &date, const DurationNano& time_of_day) {
     auto sd = date.to_time_point_local();
     auto ms = static_cast<TimePoint>(sd);
     ms += time_of_day;
     return ms;
 }
 
-constexpr std::pair<YearMonthDay<>, DurationNano> deconstruct_timepoint(TimePoint const &tp) {
+constexpr std::pair<YearMonthDay, DurationNano> deconstruct_timepoint(TimePoint const &tp) {
     auto days = std::chrono::floor<std::chrono::duration<DurationNano::rep, std::chrono::days::period>>(tp);
     return {YearMonthDay{days}, tp - days};
 }
@@ -449,70 +444,67 @@ struct dice::hash::dice_hash_overload<Policy, ::boost::multiprecision::checked_i
         return dice::hash::dice_hash_templates<Policy>::dice_hash(::boost::multiprecision::hash_value(x));
     }
 };
-template<typename Policy, typename Y>
-struct dice::hash::dice_hash_overload<Policy, rdf4cpp::Year<Y>> {
-    static size_t dice_hash(rdf4cpp::Year<Y> const &x) noexcept {
+template<typename Policy>
+struct dice::hash::dice_hash_overload<Policy, rdf4cpp::Year> {
+    static size_t dice_hash(rdf4cpp::Year const &x) noexcept {
         return dice::hash::dice_hash_templates<Policy>::dice_hash(x.year);
     }
 };
-template<typename Policy, typename Y>
-struct dice::hash::dice_hash_overload<Policy, rdf4cpp::YearMonthDay<Y>> {
-    static size_t dice_hash(rdf4cpp::YearMonthDay<Y> const &x) noexcept {
+template<typename Policy>
+struct dice::hash::dice_hash_overload<Policy, rdf4cpp::YearMonthDay> {
+    static size_t dice_hash(rdf4cpp::YearMonthDay const &x) noexcept {
         return dice::hash::dice_hash_templates<Policy>::dice_hash(std::tie(x.year, x.month, x.day));
     }
 };
-template<typename Policy, typename Y>
-struct dice::hash::dice_hash_overload<Policy, rdf4cpp::YearMonth<Y>> {
-    static size_t dice_hash(rdf4cpp::YearMonth<Y> const &x) noexcept {
+template<typename Policy>
+struct dice::hash::dice_hash_overload<Policy, rdf4cpp::YearMonth> {
+    static size_t dice_hash(rdf4cpp::YearMonth const &x) noexcept {
         return dice::hash::dice_hash_templates<Policy>::dice_hash(std::tie(x.year, x.month));
     }
 };
 
-template<typename Y>
-struct std::formatter<rdf4cpp::Year<Y>> : std::formatter<string_view> {
-    auto format(rdf4cpp::Year<Y> const &p, format_context &ctx) const {
+template<>
+struct std::formatter<rdf4cpp::Year> : std::formatter<string_view> {
+    inline auto format(rdf4cpp::Year const &p, format_context &ctx) const {
         return std::format_to(ctx.out(), "{:0{}}", p.year, p.year < 0 ? 5 : 4);
     }
 };
-template<typename Y>
-struct std::formatter<rdf4cpp::YearMonthDay<Y>> : std::formatter<string_view> {
-    auto format(rdf4cpp::YearMonthDay<Y> const &p, format_context &ctx) const {
+template<>
+struct std::formatter<rdf4cpp::YearMonthDay> : std::formatter<string_view> {
+    inline auto format(rdf4cpp::YearMonthDay const &p, format_context &ctx) const {
         return std::format_to(ctx.out(), "{}-{:%m}-{:%d}", p.year, p.month, p.day);
     }
 };
-template<typename Y>
-struct std::formatter<rdf4cpp::YearMonth<Y>> : std::formatter<string_view> {
-    auto format(rdf4cpp::YearMonth<Y> const &p, format_context &ctx) const {
+template<>
+struct std::formatter<rdf4cpp::YearMonth> : std::formatter<string_view> {
+    inline auto format(rdf4cpp::YearMonth const &p, format_context &ctx) const {
         return std::format_to(ctx.out(), "{}-{:%m}", p.year, p.month);
     }
 };
 template<>
-struct std::formatter<rdf4cpp::TimePoint > : std::formatter<string_view> {
-    auto format(rdf4cpp::TimePoint const &p, format_context &ctx) const {
+struct std::formatter<rdf4cpp::TimePoint> : std::formatter<string_view> {
+    inline auto format(rdf4cpp::TimePoint const &p, format_context &ctx) const {
         auto [date, time] = rdf4cpp::util::deconstruct_timepoint(p);
         return std::format_to(ctx.out(), "{}T{:%H:%M:%S}", date, std::chrono::hh_mm_ss{std::chrono::duration_cast<std::chrono::nanoseconds>(time)});
     }
 };
 template<>
-struct std::formatter<rdf4cpp::ZonedTime > : std::formatter<string_view> {
-    auto format(rdf4cpp::ZonedTime const &p, format_context &ctx) const {
+struct std::formatter<rdf4cpp::ZonedTime> : std::formatter<string_view> {
+    inline auto format(rdf4cpp::ZonedTime const &p, format_context &ctx) const {
         return std::format_to(ctx.out(), "{}{}", p.get_local_time(), p.get_time_zone().to_canonical_string());
     }
 };
 
 namespace rdf4cpp {
-    template<typename Y>
-    std::ostream &operator<<(std::ostream &os, rdf4cpp::Year<Y> const &value) {
+    inline std::ostream &operator<<(std::ostream &os, rdf4cpp::Year const &value) {
         std::format_to(std::ostream_iterator<char, char>{os}, "{}", value);
         return os;
     }
-    template<typename Y>
-    std::ostream &operator<<(std::ostream &os, rdf4cpp::YearMonthDay<Y> const &value) {
+    inline std::ostream &operator<<(std::ostream &os, rdf4cpp::YearMonthDay const &value) {
         std::format_to(std::ostream_iterator<char, char>{os}, "{}", value);
         return os;
     }
-    template<typename Y>
-    std::ostream &operator<<(std::ostream &os, rdf4cpp::YearMonth<Y> const &value) {
+    inline std::ostream &operator<<(std::ostream &os, rdf4cpp::YearMonth const &value) {
         std::format_to(std::ostream_iterator<char, char>{os}, "{}", value);
         return os;
     }

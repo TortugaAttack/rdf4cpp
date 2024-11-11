@@ -182,7 +182,7 @@ inline rdf4cpp::TimePoint add_duration_to_date_time(const rdf4cpp::TimePoint& tp
     int64_t const y = (m-1) / 12;
     m = std::abs(m-1) % 12 + 1;
 
-    ymd = rdf4cpp::YearMonthDay{rdf4cpp::Year<>(y), std::chrono::month{static_cast<unsigned int>(m)}, ymd.day};
+    ymd = rdf4cpp::YearMonthDay{rdf4cpp::Year(y), std::chrono::month{static_cast<unsigned int>(m)}, ymd.day};
     if (!ymd.ok())
         ymd = rdf4cpp::YearMonthDay{ymd.year, ymd.month, std::chrono::last};
 
@@ -304,7 +304,7 @@ public:
     }
 };
 
-inline YearMonthDay<> normalize(YearMonthDay<> const &i) {
+inline YearMonthDay normalize(YearMonthDay const &i) {
     // normalize
     // see https://en.cppreference.com/w/cpp/chrono/year_month_day/operator_days
     return YearMonthDay{(i + std::chrono::months{0}).to_time_point()};

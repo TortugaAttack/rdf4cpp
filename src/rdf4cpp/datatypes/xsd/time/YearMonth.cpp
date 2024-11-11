@@ -8,7 +8,7 @@ namespace rdf4cpp::datatypes::registry {
 template<>
 capabilities::Default<xsd_gYearMonth>::cpp_type capabilities::Default<xsd_gYearMonth>::from_string(std::string_view s) {
     using namespace registry::util;
-    auto year = parse_date_time_fragment<Year<>, int64_t, '-', identifier>(s);
+    auto year = parse_date_time_fragment<Year, int64_t, '-', identifier>(s);
     auto tz = rdf4cpp::Timezone::parse_optional(s, identifier);
     auto month = parse_date_time_fragment<std::chrono::month, unsigned int, '\0', identifier>(s);
     auto date = YearMonth{year, month};
@@ -55,12 +55,12 @@ std::optional<storage::identifier::LiteralID> capabilities::Inlineable<xsd_gYear
 template<>
 capabilities::Inlineable<xsd_gYearMonth>::cpp_type capabilities::Inlineable<xsd_gYearMonth>::from_inlined(storage::identifier::LiteralID inlined) noexcept {
     auto i = util::unpack<InliningHelperYearMonth>(inlined);
-    return std::make_pair(YearMonth<>{Year<>{i.year}, std::chrono::month{i.month}}, std::nullopt);
+    return std::make_pair(YearMonth{Year{i.year}, std::chrono::month{i.month}}, std::nullopt);
 }
 
 template<>
 std::partial_ordering capabilities::Comparable<xsd_gYearMonth>::compare(cpp_type const &lhs, cpp_type const &rhs) noexcept {
-    auto ym_to_tp = [](YearMonth<> const & t) -> rdf4cpp::TimePoint {
+    auto ym_to_tp = [](YearMonth const & t) -> rdf4cpp::TimePoint {
         return rdf4cpp::util::construct_timepoint(YearMonthDay{t.year, t.month, std::chrono::last}, rdf4cpp::util::time_point_replacement_time_of_day);
     };
     return registry::util::compare_time_points(ym_to_tp(lhs.first), lhs.second, ym_to_tp(rhs.first), rhs.second);

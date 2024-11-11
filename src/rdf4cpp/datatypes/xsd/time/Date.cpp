@@ -8,7 +8,7 @@ namespace rdf4cpp::datatypes::registry {
 template<>
 capabilities::Default<xsd_date>::cpp_type capabilities::Default<xsd_date>::from_string(std::string_view s) {
     using namespace datatypes::registry::util;
-    auto year = parse_date_time_fragment<Year<>, int64_t, '-', identifier>(s);
+    auto year = parse_date_time_fragment<Year, int64_t, '-', identifier>(s);
     auto month = parse_date_time_fragment<std::chrono::month, unsigned int, '-', identifier>(s);
     auto tz = rdf4cpp::Timezone::parse_optional(s, identifier);
     auto day = parse_date_time_fragment<std::chrono::day, unsigned int, '\0', identifier>(s);
@@ -60,10 +60,10 @@ std::optional<storage::identifier::LiteralID> capabilities::Inlineable<xsd_date>
 template<>
 capabilities::Inlineable<xsd_date>::cpp_type capabilities::Inlineable<xsd_date>::from_inlined(storage::identifier::LiteralID inlined) noexcept {
     auto const i = util::unpack_integral<int64_t>(inlined);
-    return capabilities::Inlineable<xsd_date>::cpp_type{YearMonthDay<>::time_point<int64_t>{YearMonthDay<>::time_point<int64_t>::duration{i}}, std::nullopt};
+    return capabilities::Inlineable<xsd_date>::cpp_type{YearMonthDay::time_point<int64_t>{YearMonthDay::time_point<int64_t>::duration{i}}, std::nullopt};
 }
 
-rdf4cpp::TimePoint date_to_tp(YearMonthDay<> const & d) noexcept {
+rdf4cpp::TimePoint date_to_tp(YearMonthDay const &d) noexcept {
     return rdf4cpp::util::construct_timepoint(d, rdf4cpp::util::time_point_replacement_time_of_day);
 }
 

@@ -2274,7 +2274,7 @@ Literal Literal::now(storage::DynNodeStoragePtr node_storage) {
     return make_typed_from_value<datatypes::xsd::DateTime>(std::make_pair(t, opt), node_storage);
 }
 
-std::optional<Year<>> Literal::year() const noexcept {
+std::optional<Year> Literal::year() const noexcept {
     if (!datatype_eq<datatypes::xsd::DateTime>() && !datatype_eq<datatypes::xsd::DateTimeStamp>() && !datatype_eq<datatypes::xsd::Date>()
             && !datatype_eq<datatypes::xsd::GYearMonth>() && !datatype_eq<datatypes::xsd::GYear>())
         return std::nullopt;

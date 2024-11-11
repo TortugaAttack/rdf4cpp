@@ -8,7 +8,7 @@ namespace rdf4cpp::datatypes::registry {
 template<>
 capabilities::Default<xsd_dateTimeStamp>::cpp_type capabilities::Default<xsd_dateTimeStamp>::from_string(std::string_view s) {
     using namespace datatypes::registry::util;
-    auto year = parse_date_time_fragment<Year<>, int64_t, '-', identifier>(s);
+    auto year = parse_date_time_fragment<Year, int64_t, '-', identifier>(s);
     auto month = parse_date_time_fragment<std::chrono::month, unsigned int, '-', identifier>(s);
     auto day = parse_date_time_fragment<std::chrono::day, unsigned int, 'T', identifier>(s);
     auto hours = parse_date_time_fragment<std::chrono::hours, unsigned int, ':', identifier>(s);
