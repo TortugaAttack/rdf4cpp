@@ -209,7 +209,7 @@ SerdStatus IStreamQuadIterator::Impl::on_prefix(void *voided_self, SerdNode cons
                                         .col = serd_reader_get_current_col(self->reader),
                                         .message = "Encountered prefix while parsing. hint: prefixes are not allowed in the current document. note: position may not be accurate and instead point to the end of the line."};
     } else {
-        self->state->iri_factory.assign_prefix(node_into_string_view(name), node_into_string_view(uri));
+        self->state->iri_factory.assign_prefix_unchecked(node_into_string_view(name), node_into_string_view(uri));
     }
 
     return SERD_SUCCESS;

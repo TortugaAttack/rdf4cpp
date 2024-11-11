@@ -178,33 +178,39 @@ TEST_CASE("base reassign") {
 TEST_CASE("prefix") {
     IRIFactory fact{};
 
-    CHECK(fact.assign_prefix_checked(" ", "foo") == IRIFactoryError::InvalidPrefix);
+    CHECK(fact.assign_prefix(" ", "foo") == IRIFactoryError::InvalidPrefix);
+    CHECK(fact.assign_prefix("abc.", "foo") == IRIFactoryError::InvalidPrefix);
+    CHECK(fact.assign_prefix(".abc", "foo") == IRIFactoryError::InvalidPrefix);
 
-    CHECK(fact.assign_prefix_checked("pre", "http://ex.org/") == IRIFactoryError::Ok);
-    CHECK(fact.assign_prefix_checked("foo", "http://foo.org/") == IRIFactoryError::Ok);
+
+
+    CHECK(fact.assign_prefix("pre", "http://ex.org/") == IRIFactoryError::Ok);
+    CHECK(fact.assign_prefix("foo", "http://foo.org/") == IRIFactoryError::Ok);
 
     CHECK(fact.from_prefix("pre", "bar").value().identifier() == "http://ex.org/bar");
     CHECK(fact.from_prefix("foo", "bar").value().identifier() == "http://foo.org/bar");
     CHECK(fact.from_prefix("bar", "bar").error() == IRIFactoryError::UnknownPrefix);
 
-    CHECK(fact.assign_prefix_checked("pre", "http://ex.org/pre2/") == IRIFactoryError::Ok);
+    CHECK(fact.assign_prefix("pre", "http://ex.org/pre2/") == IRIFactoryError::Ok);
     CHECK(fact.from_prefix("pre", "bar").value().identifier() == "http://ex.org/pre2/bar");
 
     fact.clear_prefix("pre");
     CHECK(fact.from_prefix("pre", "bar").error() == IRIFactoryError::UnknownPrefix);
+
+    CHECK(fact.assign_prefix("", "foo") == IRIFactoryError::Ok);
 }
 
 TEST_CASE("relative prefix") {
     IRIFactory fact{"http://ex.org/"};
 
-    fact.assign_prefix("pre", "pre/");
-    fact.assign_prefix("foo", "foo/");
+    fact.assign_prefix_unchecked("pre", "pre/");
+    fact.assign_prefix_unchecked("foo", "foo/");
 
     CHECK(fact.from_prefix("pre", "bar").value().identifier() == "http://ex.org/pre/bar");
     CHECK(fact.from_prefix("foo", "bar").value().identifier() == "http://ex.org/foo/bar");
     CHECK(fact.from_prefix("bar", "bar").error() == IRIFactoryError::UnknownPrefix);
 
-    fact.assign_prefix("pre", "pre2/");
+    fact.assign_prefix_unchecked("pre", "pre2/");
     CHECK(fact.from_prefix("pre", "bar").value().identifier() == "http://ex.org/pre2/bar");
 
     fact.clear_prefix("pre");
@@ -215,8 +221,8 @@ TEST_CASE("IRIFactory iterators") {
     std::set<std::pair<std::string, std::string>> const expected{{"pre", "http://ex.org/"}, {"foo", "http://foo.org/"}};
 
     IRIFactory factory{};
-    factory.assign_prefix("pre", "http://ex.org/");
-    factory.assign_prefix("foo", "http://foo.org/");
+    factory.assign_prefix_unchecked("pre", "http://ex.org/");
+    factory.assign_prefix_unchecked("foo", "http://foo.org/");
 
     std::vector<std::pair<std::string, std::string>> actual;
     for (auto const &entry : factory) {

@@ -229,15 +229,35 @@ nonstd::expected<IRI, IRIFactoryError> IRIFactory::create_and_validate(std::stri
     return IRI::make_unchecked(iri, node_storage);
 }
 
-IRIFactoryError IRIFactory::assign_prefix_checked(std::string_view prefix, std::string_view expanded) {
+IRIFactoryError IRIFactory::assign_prefix(std::string_view prefix, std::string_view expanded) {
     using namespace util::char_matcher_detail;
-    static constexpr auto pattern = PNCharsMatcher | ASCIIPatternMatcher{"."};
-    if (!match<pattern, una::views::utf8>(prefix))
-        return IRIFactoryError::InvalidPrefix;
-    assign_prefix(prefix, expanded);
+    static constexpr auto first_matcher = ASCIINumMatcher{} | PNCharsUMatcher;
+    auto r = prefix | una::views::utf8;
+    auto it = r.begin();
+    if (it != r.end()) {
+        if (!first_matcher.match(*it)) {
+            return IRIFactoryError::InvalidPrefix;
+        }
+        auto lastchar = *it;
+        ++it;
+        static constexpr auto pn_matcher = PNCharsMatcher | ASCIIPatternMatcher{"."};
+        while (it != r.end()) {
+            if (!pn_matcher.match(*it))
+            {
+                return IRIFactoryError::InvalidPrefix;
+            }
+            lastchar = *it;
+            ++it;
+        }
+        if (lastchar == '.') {
+            return IRIFactoryError::InvalidPrefix;
+        }
+    }
+    // checking expanded can only be done after the full IRI was created
+    assign_prefix_unchecked(prefix, expanded);
     return IRIFactoryError::Ok;
 }
-void IRIFactory::assign_prefix(std::string_view prefix, std::string_view expanded) {
+void IRIFactory::assign_prefix_unchecked(std::string_view prefix, std::string_view expanded) {
     std::string pre{prefix};
     prefixes[pre] = expanded;
 }
