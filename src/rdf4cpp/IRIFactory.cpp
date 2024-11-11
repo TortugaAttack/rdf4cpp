@@ -1,6 +1,9 @@
 #include "IRIFactory.hpp"
 
 #include <rdf4cpp/datatypes/registry/DatatypeRegistry.hpp>
+#include <rdf4cpp/util/CharMatcher.hpp>
+
+#include <uni_algo/all.h>
 
 namespace rdf4cpp {
 
@@ -226,6 +229,14 @@ nonstd::expected<IRI, IRIFactoryError> IRIFactory::create_and_validate(std::stri
     return IRI::make_unchecked(iri, node_storage);
 }
 
+IRIFactoryError IRIFactory::assign_prefix_checked(std::string_view prefix, std::string_view expanded) {
+    using namespace util::char_matcher_detail;
+    static constexpr auto pattern = PNCharsMatcher | ASCIIPatternMatcher{"."};
+    if (!match<pattern, una::views::utf8>(prefix))
+        return IRIFactoryError::InvalidPrefix;
+    assign_prefix(prefix, expanded);
+    return IRIFactoryError::Ok;
+}
 void IRIFactory::assign_prefix(std::string_view prefix, std::string_view expanded) {
     std::string pre{prefix};
     prefixes[pre] = expanded;

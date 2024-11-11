@@ -21,6 +21,7 @@ enum struct IRIFactoryError {
     InvalidPath,
     InvalidQuery,
     InvalidFragment,
+    InvalidPrefix,
 };
 
 /**

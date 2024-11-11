@@ -178,14 +178,16 @@ TEST_CASE("base reassign") {
 TEST_CASE("prefix") {
     IRIFactory fact{};
 
-    fact.assign_prefix("pre", "http://ex.org/");
-    fact.assign_prefix("foo", "http://foo.org/");
+    CHECK(fact.assign_prefix_checked(" ", "foo") == IRIFactoryError::InvalidPrefix);
+
+    CHECK(fact.assign_prefix_checked("pre", "http://ex.org/") == IRIFactoryError::Ok);
+    CHECK(fact.assign_prefix_checked("foo", "http://foo.org/") == IRIFactoryError::Ok);
 
     CHECK(fact.from_prefix("pre", "bar").value().identifier() == "http://ex.org/bar");
     CHECK(fact.from_prefix("foo", "bar").value().identifier() == "http://foo.org/bar");
     CHECK(fact.from_prefix("bar", "bar").error() == IRIFactoryError::UnknownPrefix);
 
-    fact.assign_prefix("pre", "http://ex.org/pre2/");
+    CHECK(fact.assign_prefix_checked("pre", "http://ex.org/pre2/") == IRIFactoryError::Ok);
     CHECK(fact.from_prefix("pre", "bar").value().identifier() == "http://ex.org/pre2/bar");
 
     fact.clear_prefix("pre");

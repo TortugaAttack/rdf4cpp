@@ -67,6 +67,13 @@ public:
 
     /**
      * Creates or changes a prefix.
+     * @param prefix
+     * @param expanded
+     */
+    [[nodiscard]] IRIFactoryError assign_prefix_checked(std::string_view prefix, std::string_view expanded);
+
+    /**
+     * Creates or changes a prefix.
      * expects prefix and expanded to be valid (i.e. not contain spaces or other chars that are invalid in an IRI).
      * this is ensured by our parser: https://github.com/dice-group/sparql-parser-base
      * @param prefix
