@@ -8,16 +8,16 @@ namespace rdf4cpp::datatypes::registry {
 template<>
 capabilities::Default<xsd_date>::cpp_type capabilities::Default<xsd_date>::from_string(std::string_view s) {
     using namespace datatypes::registry::util;
-    auto year = parse_date_time_fragment<std::chrono::year, int, '-', identifier>(s);
+    auto year = parse_date_time_fragment<Year, int64_t, '-', identifier>(s);
     auto month = parse_date_time_fragment<std::chrono::month, unsigned int, '-', identifier>(s);
     auto tz = rdf4cpp::Timezone::parse_optional(s, identifier);
     auto day = parse_date_time_fragment<std::chrono::day, unsigned int, '\0', identifier>(s);
-    auto date = year / month / day;
+    auto date = YearMonthDay{year, month, day};
     if (registry::relaxed_parsing_mode && !date.ok()) {
         date = normalize(date);
     }
     if (!date.ok()) {
-        throw InvalidNode(std::format("{} parsing error: {:%Y-%m-%d} is invalid", identifier, date));
+        throw InvalidNode(std::format("{} parsing error: {} is invalid", identifier, date));
     }
 
     return std::make_pair(date, tz);
@@ -30,7 +30,7 @@ bool capabilities::Default<xsd_date>::serialize_canonical_string(cpp_type const 
                              registry::util::chrono_max_canonical_string_chars::month + 1 +
                              registry::util::chrono_max_canonical_string_chars::day + Timezone::max_canonical_string_chars>
             buff;
-    char *it = std::format_to(buff.data(), "{:%Y-%m-%d}", value.first);
+    char *it = std::format_to(buff.data(), "{}", value.first);
     if (value.second.has_value()) {
         it = value.second->to_canonical_string(it);
     }
@@ -47,20 +47,23 @@ static_assert(sizeof(std::chrono::year_month_day) * 8 <= storage::identifier::Li
 
 template<>
 std::optional<storage::identifier::LiteralID> capabilities::Inlineable<xsd_date>::try_into_inlined(cpp_type const &value) noexcept {
-    if (value.second.has_value())
+    if (value.second.has_value()) {
         return std::nullopt;
-    return util::pack<storage::identifier::LiteralID>(InliningHelperYearMonthDay{static_cast<int16_t>(static_cast<int>(value.first.year())),
-                                                                                       static_cast<uint8_t>(static_cast<unsigned int>(value.first.month())),
-                                                                                       static_cast<uint8_t>(static_cast<unsigned int>(value.first.day()))});
+    }
+    auto i = value.first.to_time_point().time_since_epoch().count();
+    if (!util::fits_into<int64_t>(i)) [[unlikely]] {
+        return std::nullopt;
+    }
+    return util::try_pack_integral<storage::identifier::LiteralID>(static_cast<int64_t>(i));
 }
 
 template<>
 capabilities::Inlineable<xsd_date>::cpp_type capabilities::Inlineable<xsd_date>::from_inlined(storage::identifier::LiteralID inlined) noexcept {
-    auto i = util::unpack<InliningHelperYearMonthDay>(inlined);
-    return std::make_pair(std::chrono::year{i.year} / std::chrono::month{i.month} / std::chrono::day{i.day}, std::nullopt);
+    auto const i = util::unpack_integral<int64_t>(inlined);
+    return capabilities::Inlineable<xsd_date>::cpp_type{YearMonthDay::time_point<int64_t>{YearMonthDay::time_point<int64_t>::duration{i}}, std::nullopt};
 }
 
-    rdf4cpp::TimePoint date_to_tp(std::chrono::year_month_day d) noexcept {
+rdf4cpp::TimePoint date_to_tp(YearMonthDay const &d) noexcept {
     return rdf4cpp::util::construct_timepoint(d, rdf4cpp::util::time_point_replacement_time_of_day);
 }
 
@@ -73,7 +76,7 @@ capabilities::Subtype<xsd_date>::super_cpp_type<0> capabilities::Subtype<xsd_dat
 template<>
 template<>
 nonstd::expected<capabilities::Subtype<xsd_date>::cpp_type, DynamicError> capabilities::Subtype<xsd_date>::from_supertype<0>(super_cpp_type<0> const &value) noexcept {
-    return std::make_pair(std::chrono::year_month_day{std::chrono::floor<std::chrono::days>(value.first)}, value.second);
+    return std::make_pair(YearMonthDay{std::chrono::floor<std::chrono::days>(value.first)}, value.second);
 }
 
 template<>

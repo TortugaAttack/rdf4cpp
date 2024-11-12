@@ -14,7 +14,7 @@ namespace rdf4cpp::datatypes::registry {
 #ifndef DOXYGEN_PARSER
 template<>
 struct DatatypeMapping<xsd_dayTimeDuration> {
-    using cpp_datatype = std::chrono::milliseconds;
+    using cpp_datatype = std::chrono::nanoseconds;
 };
 template<>
 struct DatatypeSupertypeMapping<xsd_dayTimeDuration> {

@@ -1387,7 +1387,7 @@ public:
      * returns the year part of this.
      * @return year or nullopt
      */
-    [[nodiscard]] std::optional<std::chrono::year> year() const noexcept;
+    [[nodiscard]] std::optional<Year> year() const noexcept;
 
     /**
      * returns the year part of this.
@@ -1447,7 +1447,7 @@ public:
      * returns the seconds (including fractional) part of this.
      * @return seconds or nullopt
      */
-    [[nodiscard]] std::optional<std::chrono::milliseconds> seconds() const noexcept;
+    [[nodiscard]] std::optional<std::chrono::nanoseconds> seconds() const noexcept;
 
     /**
      * returns the seconds (including fractional) part of this.

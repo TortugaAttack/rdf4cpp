@@ -8,7 +8,7 @@ namespace rdf4cpp::datatypes::registry {
 template<>
 capabilities::Default<xsd_dateTimeStamp>::cpp_type capabilities::Default<xsd_dateTimeStamp>::from_string(std::string_view s) {
     using namespace datatypes::registry::util;
-    auto year = parse_date_time_fragment<std::chrono::year, int, '-', identifier>(s);
+    auto year = parse_date_time_fragment<Year, int64_t, '-', identifier>(s);
     auto month = parse_date_time_fragment<std::chrono::month, unsigned int, '-', identifier>(s);
     auto day = parse_date_time_fragment<std::chrono::day, unsigned int, 'T', identifier>(s);
     auto hours = parse_date_time_fragment<std::chrono::hours, unsigned int, ':', identifier>(s);
@@ -21,13 +21,13 @@ capabilities::Default<xsd_dateTimeStamp>::cpp_type capabilities::Default<xsd_dat
         throw InvalidNode{std::format("{} parsing error: missing timezone", identifier)};
     }
     auto tz = rdf4cpp::Timezone::parse(s.substr(p), identifier);
-    std::chrono::milliseconds ms = parse_milliseconds<identifier>(s.substr(0, p));
-    auto date = year / month / day;
+    std::chrono::nanoseconds ms = parse_nanoseconds<identifier>(s.substr(0, p));
+    auto date = YearMonthDay{year, month, day};
     if (registry::relaxed_parsing_mode && !date.ok()) {
         date = normalize(date);
     }
     if (!date.ok()) {
-        throw InvalidNode(std::format("{} parsing error: {:%Y-%m-%d} is invalid", identifier, date));
+        throw InvalidNode(std::format("{} parsing error: {} is invalid", identifier, date));
     }
     if (!registry::relaxed_parsing_mode) {
         if (minutes < std::chrono::minutes(0) || minutes > std::chrono::hours(1)) {
@@ -43,9 +43,9 @@ capabilities::Default<xsd_dateTimeStamp>::cpp_type capabilities::Default<xsd_dat
     auto time = hours + minutes + ms;
     if (!registry::relaxed_parsing_mode) {
         if (time == std::chrono::hours{24}) {
-            date = std::chrono::year_month_day{std::chrono::local_days{date} + std::chrono::days{1}};
+            date = YearMonthDay{date.to_time_point_local() + std::chrono::days{1}};
             if (!date.ok()) {
-                throw InvalidNode(std::format("{} parsing error: {:%Y-%m-%d} is invalid", identifier, date));
+                throw InvalidNode(std::format("{} parsing error: {} is invalid", identifier, date));
             }
             time = std::chrono::hours{0};
         } else if (time > std::chrono::hours{24}) {
@@ -66,7 +66,8 @@ bool capabilities::Default<xsd_dateTimeStamp>::serialize_canonical_string(cpp_ty
                              registry::util::chrono_max_canonical_string_chars::minutes + 1 +
                              registry::util::chrono_max_canonical_string_chars::seconds + Timezone::max_canonical_string_chars>
             buff;
-    char *it = std::format_to(buff.data(), "{:%Y-%m-%dT%H:%M:%S}", value);
+    auto [date, time] = rdf4cpp::util::deconstruct_timepoint(value.get_local_time());
+    char *it = std::format_to(buff.data(), "{}T{:%H:%M:%S}", date, std::chrono::hh_mm_ss{std::chrono::duration_cast<std::chrono::nanoseconds>(time)});
     it = util::canonical_seconds_remove_empty_millis(it);
     it = value.get_time_zone().to_canonical_string(it);
     size_t const len = it - buff.data();
@@ -81,6 +82,8 @@ std::optional<storage::identifier::LiteralID> capabilities::Inlineable<xsd_dateT
     auto tp_sec = std::chrono::floor<std::chrono::seconds>(value.get_sys_time());
     if ((value.get_sys_time() - tp_sec).count() != 0)
         return std::nullopt;
+    if (!util::fits_into<int64_t>(tp_sec.time_since_epoch().count()))
+        return std::nullopt;
     auto s = static_cast<int64_t>(tp_sec.time_since_epoch().count());
     return util::try_pack_integral<storage::identifier::LiteralID>(s);
 }
@@ -92,7 +95,16 @@ capabilities::Inlineable<xsd_dateTimeStamp>::cpp_type capabilities::Inlineable<x
 
 template<>
 std::partial_ordering capabilities::Comparable<xsd_dateTimeStamp>::compare(cpp_type const &lhs, cpp_type const &rhs) noexcept {
-    return lhs.get_sys_time() <=> rhs.get_sys_time();
+    auto const cmp = [](const auto& a, const auto& b) noexcept -> std::partial_ordering {
+        if (a == b)
+            return std::partial_ordering::equivalent;
+        else if (a < b)
+            return std::partial_ordering::less;
+        else if (a > b)
+            return std::partial_ordering::greater;
+        return std::partial_ordering::unordered;
+    };
+    return cmp(lhs.get_sys_time(), rhs.get_sys_time());
 }
 
 template<>

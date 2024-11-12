@@ -11,7 +11,7 @@ capabilities::Default<xsd_time>::cpp_type capabilities::Default<xsd_time>::from_
     auto hours = parse_date_time_fragment<std::chrono::hours, unsigned int, ':', identifier>(s);
     auto minutes = parse_date_time_fragment<std::chrono::minutes, unsigned int, ':', identifier>(s);
     auto tz = rdf4cpp::Timezone::parse_optional(s, identifier);
-    std::chrono::milliseconds ms = parse_milliseconds<identifier>(s);
+    std::chrono::nanoseconds ms = parse_nanoseconds<identifier>(s);
     if (!registry::relaxed_parsing_mode) {
         if (minutes < std::chrono::minutes(0) || minutes > std::chrono::hours(1)) {
             throw InvalidNode{std::format("{} parsing error: minutes out of range", identifier)};
@@ -83,7 +83,7 @@ capabilities::Subtype<xsd_time>::super_cpp_type<0> capabilities::Subtype<xsd_tim
 template<>
 template<>
 nonstd::expected<capabilities::Subtype<xsd_time>::cpp_type, DynamicError> capabilities::Subtype<xsd_time>::from_supertype<0>(super_cpp_type<0> const &value) noexcept {
-    return std::make_pair(value.first - std::chrono::floor<std::chrono::days>(value.first), value.second);
+    return std::make_pair(std::chrono::duration_cast<std::chrono::nanoseconds>(value.first - std::chrono::floor<std::chrono::days>(value.first)), value.second);
 }
 #endif
 

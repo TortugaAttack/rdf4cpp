@@ -73,4 +73,14 @@ namespace rdf4cpp::datatypes::registry::instantiation_detail {
 
 } // namespace rdf4cpp::datatypes::registry::instantiation_detail
 
+#ifndef DOXYGEN_PARSER
+template<typename Policy>
+struct dice::hash::dice_hash_overload<Policy, std::chrono::month> {
+    static size_t dice_hash(std::chrono::month const &x) noexcept {
+        auto month = static_cast<unsigned int>(x);
+        return dice::hash::dice_hash_templates<Policy>::dice_hash(month);
+    }
+};
+#endif
+
 #endif  //RDF4CPP_MONTH_HPP

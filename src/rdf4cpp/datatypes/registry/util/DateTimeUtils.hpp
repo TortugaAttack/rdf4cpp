@@ -88,6 +88,19 @@ bool fits_into(double d) {
     return true;
 }
 
+/**
+ * checks if a boost::multiprecision::number fits into a specified integer type.
+ * @tparam I
+ * @tparam B
+ * @tparam e
+ * @param n
+ * @return
+ */
+template<std::integral I, typename B, boost::multiprecision::expression_template_option e>
+constexpr bool fits_into(boost::multiprecision::number<B, e> const &n) {
+    return n <= std::numeric_limits<I>::max() && n >= std::numeric_limits<I>::min();
+}
+
 template<typename ResultType, typename ParsingType, char Separator, ConstexprString datatype>
 ResultType parse_date_time_fragment(std::string_view &s) {
     std::string_view res_s = s;
@@ -115,13 +128,13 @@ std::optional<ResultType> parse_duration_fragment(std::string_view &s) {
 }
 
 template<ConstexprString datatype>
-inline std::chrono::milliseconds parse_milliseconds(std::string_view s) {
+inline std::chrono::nanoseconds parse_nanoseconds(std::string_view s) {
     auto p = s.find('.');
-    std::chrono::milliseconds ms{};
+    std::chrono::nanoseconds ms{};
     if (p != std::string::npos) {
-        auto milli_s = s.substr(p + 1, 3);
-        ms = std::chrono::milliseconds{from_chars<unsigned int, datatype>(milli_s)};
-        for (size_t i = milli_s.length(); i < 3; ++i) {
+        auto milli_s = s.substr(p + 1, 9);
+        ms = std::chrono::nanoseconds{from_chars<unsigned int, datatype>(milli_s)};
+        for (size_t i = milli_s.length(); i < 9; ++i) {
             ms *= 10;
         }
         s = s.substr(0, p);
@@ -131,20 +144,22 @@ inline std::chrono::milliseconds parse_milliseconds(std::string_view s) {
 }
 
 template<ConstexprString datatype>
-inline std::optional<std::chrono::milliseconds> parse_duration_milliseconds(std::string_view &s) {
-    if (s.empty())
+inline std::optional<std::chrono::nanoseconds> parse_duration_nanoseconds(std::string_view &s) {
+    if (s.empty()) {
         return std::nullopt;
+    }
     std::string_view res_s = s;
     auto p = s.find('S');
-    if (p == std::string::npos)
+    if (p == std::string::npos) {
         return std::nullopt;
+    }
     res_s = s.substr(0, p);
     s = s.substr(p + 1);
-    return parse_milliseconds<datatype>(res_s);
+    return parse_nanoseconds<datatype>(res_s);
 }
 
 inline char *canonical_seconds_remove_empty_millis(char *it) {
-    for (size_t m = 0; m<3; ++m) {
+    for (size_t m = 0; m<9; ++m) {
         if (*(it - 1) != '0')
             return it;
         --it;
@@ -154,70 +169,76 @@ inline char *canonical_seconds_remove_empty_millis(char *it) {
     return it;
 }
 
-inline bool in_ymd_bounds(rdf4cpp::TimePoint tp) noexcept {
-    static constexpr auto max = rdf4cpp::util::construct_timepoint(std::chrono::year::max() / std::chrono::December / std::chrono::day{31},
-                                                                   std::chrono::days{1} - std::chrono::milliseconds{1});
-    static constexpr auto min = rdf4cpp::util::construct_timepoint(std::chrono::year::min() / std::chrono::January / std::chrono::day{1},
-                                                                   std::chrono::milliseconds{0});
-    return max >= tp && tp >= min;
-}
-
-inline CheckedTimePoint add_duration_to_date_time(rdf4cpp::TimePoint tp, std::pair<std::chrono::months, std::chrono::milliseconds> d) noexcept {
+inline rdf4cpp::TimePoint add_duration_to_date_time(const rdf4cpp::TimePoint& tp, std::pair<std::chrono::months, std::chrono::nanoseconds> d) {
     // only gets smaller, no overflow possible
     auto days = std::chrono::floor<std::chrono::days>(tp);
     auto time = tp - days;
-    std::chrono::year_month_day ymd{days};
+    rdf4cpp::YearMonthDay ymd{days};
 
-    int64_t m = static_cast<unsigned int>(ymd.month());
-    m += static_cast<int>(ymd.year()) * 12; // it did fit into a 64 bit TimePoint before, so this cannot overflow
+    int64_t m = static_cast<unsigned int>(ymd.month);
+    m += ymd.year.year * 12; // it did fit into a 64 bit TimePoint before, so this cannot overflow
 
-    if (__builtin_add_overflow(m, d.first.count(), &m))
-        return CheckedTimePoint{CheckedMilliseconds{rdf4cpp::util::CheckedIntegral<int64_t>{0, true}}};
-    int64_t y = (m-1) / 12;
+    m += d.first.count();
+    int64_t const y = (m-1) / 12;
     m = std::abs(m-1) % 12 + 1;
-    if (y > static_cast<int>(std::chrono::year::max()) || y < static_cast<int>(std::chrono::year::min()))
-        return CheckedTimePoint{CheckedMilliseconds{rdf4cpp::util::CheckedIntegral<int64_t>{0, true}}};
 
-    ymd = std::chrono::year{static_cast<int>(y)} / std::chrono::month{static_cast<unsigned int>(m)} / ymd.day();
+    ymd = rdf4cpp::YearMonthDay{rdf4cpp::Year(y), std::chrono::month{static_cast<unsigned int>(m)}, ymd.day};
     if (!ymd.ok())
-        ymd = ymd.year() / ymd.month() / std::chrono::last;
+        ymd = rdf4cpp::YearMonthDay{ymd.year, ymd.month, std::chrono::last};
 
-    CheckedTimePoint date = to_checked(static_cast<std::chrono::local_days>(ymd));
-    date += to_checked(time);
-    date += to_checked(d.second);
+    rdf4cpp::TimePoint date = ymd.to_time_point_local();
+    date += time;
+    date += d.second;
 
     return date;
 }
 
-static inline std::partial_ordering compare_time_points(rdf4cpp::TimePoint a, std::optional<rdf4cpp::Timezone> atz,
-                                                        rdf4cpp::TimePoint b, std::optional<rdf4cpp::Timezone> btz) noexcept {
-    auto apply_timezone = [](CheckedTimePoint t, rdf4cpp::Timezone tz) noexcept -> CheckedTimePointSys {
-        return CheckedZonedTime{tz, t}.get_sys_time();
+static inline std::partial_ordering compare_time_points(const rdf4cpp::TimePoint& a, std::optional<rdf4cpp::Timezone> atz,
+                                                        const rdf4cpp::TimePoint& b, std::optional<rdf4cpp::Timezone> btz) noexcept {
+    auto apply_timezone = [](const rdf4cpp::TimePoint& t, rdf4cpp::Timezone tz) noexcept -> std::optional<rdf4cpp::TimePointSys> {
+        try {
+            return rdf4cpp::ZonedTime{tz, t}.get_sys_time();
+        } catch (const std::overflow_error&) {
+            return std::nullopt;
+        }
     };
 
-    CheckedTimePoint a_tp = to_checked(a);
-    CheckedTimePoint b_tp = to_checked(b);
+    auto const cmp = [](const auto& a, const auto& b) noexcept -> std::partial_ordering {
+        if (a == b)
+            return std::partial_ordering::equivalent;
+        else if (a < b)
+            return std::partial_ordering::less;
+        else if (a > b)
+            return std::partial_ordering::greater;
+        return std::partial_ordering::unordered;
+    };
+    auto const cmp_opt = [cmp](const std::optional<rdf4cpp::TimePointSys>& a, const std::optional<rdf4cpp::TimePointSys>& b) noexcept -> std::partial_ordering {
+        if (!a.has_value() || !b.has_value())
+            return std::partial_ordering::unordered;
+        return cmp(*a, *b);
+    };
+
     if (atz.has_value()) {
-        CheckedTimePointSys a_sys = apply_timezone(a_tp, *atz);
+        auto a_sys = apply_timezone(a, *atz);
         if (btz.has_value()) {
-            return a_sys.time_since_epoch().count() <=> apply_timezone(b_tp, *btz).time_since_epoch().count();
+            return cmp_opt(a_sys, apply_timezone(b, *btz));
         } else {
-            auto p14 = a_sys.time_since_epoch().count() <=> apply_timezone(b_tp, rdf4cpp::Timezone::max_value()).time_since_epoch().count();
-            auto m14 = a_sys.time_since_epoch().count() <=> apply_timezone(b_tp, rdf4cpp::Timezone::min_value()).time_since_epoch().count();
+            auto p14 = cmp_opt(a_sys, apply_timezone(b, rdf4cpp::Timezone::max_value()));
+            auto m14 = cmp_opt(a_sys, apply_timezone(b, rdf4cpp::Timezone::min_value()));
             if (p14 != m14)
                 return std::partial_ordering::unordered;
             return p14;
         }
     } else {
         if (btz.has_value()) {
-            CheckedTimePointSys b_sys = apply_timezone(b_tp, *btz);
-            auto p14 = apply_timezone(a_tp, rdf4cpp::Timezone::max_value()).time_since_epoch().count() <=> b_sys.time_since_epoch().count();
-            auto m14 = apply_timezone(a_tp, rdf4cpp::Timezone::min_value()).time_since_epoch().count() <=> b_sys.time_since_epoch().count();
+            auto b_sys = apply_timezone(b, *btz);
+            auto p14 = cmp_opt(apply_timezone(a, rdf4cpp::Timezone::max_value()), b_sys);
+            auto m14 = cmp_opt(apply_timezone(a, rdf4cpp::Timezone::min_value()), b_sys);
             if (p14 != m14)
                 return std::partial_ordering::unordered;
             return p14;
         } else {
-            return a_tp.time_since_epoch().count() <=> b_tp.time_since_epoch().count();
+            return cmp(a, b);
         }
     }
 }
@@ -283,10 +304,10 @@ public:
     }
 };
 
-inline std::chrono::year_month_day normalize(std::chrono::year_month_day i) {
+inline YearMonthDay normalize(YearMonthDay const &i) {
     // normalize
     // see https://en.cppreference.com/w/cpp/chrono/year_month_day/operator_days
-    return static_cast<std::chrono::year_month_day>(static_cast<std::chrono::sys_days>(i + std::chrono::months{0}));
+    return YearMonthDay{(i + std::chrono::months{0}).to_time_point()};
 }
 
 template<std::integral I, I base = 10>
@@ -305,16 +326,13 @@ static_assert(number_of_digits(-1)==2);
 static_assert(number_of_digits(10)==2);
 static_assert(number_of_digits(std::numeric_limits<uint64_t>::max())==std::numeric_limits<uint64_t>::digits10+1);
 namespace chrono_max_canonical_string_chars {
-    //std::chrono::year is in [-32767, 32767]
-    inline constexpr size_t year = std::max(number_of_digits(static_cast<int>(std::chrono::year::min())), number_of_digits(static_cast<int>(std::chrono::year::max())));
-    static_assert(std::chrono::year::min() == std::chrono::year(-32767));  //NOLINT
-    static_assert(std::chrono::year::max() == std::chrono::year(32767));   //NOLINT
+    inline constexpr size_t year = std::numeric_limits<uint64_t>::digits10 + 2; // +1 for the not fully representable digit, +1 for - sign
     //std::chrono::day is in [0, 255]
     inline constexpr size_t day = number_of_digits(255);
     //std::chrono::month is in [0, 255]
     inline constexpr size_t month = number_of_digits(255);
-    //[0, 59.999] (includes milliseconds)
-    inline constexpr size_t seconds = 2 + 1 + 3;
+    //[0, 59.999...] (includes nanoseconds)
+    inline constexpr size_t seconds = 2 + 1 + 9;
     //[0,59]
     inline constexpr size_t minutes = 2;
     //[0,24] (used if more than 24 hours get added to days)

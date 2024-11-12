@@ -1043,9 +1043,9 @@ struct get_find_values<datatypes::xsd::Int> {  // always inlined
 };
 template<>
 struct get_find_values<datatypes::xsd::Date> {  // inlined == has timezone
-    static constexpr std::pair<std::chrono::year_month_day, rdf4cpp::OptionalTimezone> av{std::chrono::year{1342} / 5 / 4, rdf4cpp::Timezone{std::chrono::hours{1}}};
-    static constexpr std::pair<std::chrono::year_month_day, rdf4cpp::OptionalTimezone> bv{std::chrono::year{1342} / 5 / 5, rdf4cpp::Timezone{std::chrono::hours{1}}};
-    static constexpr std::pair<std::chrono::year_month_day, rdf4cpp::OptionalTimezone> inl{std::chrono::year{1342} / 5 / 6, std::nullopt};
+    static constexpr std::pair<YearMonthDay, rdf4cpp::OptionalTimezone> av{YearMonthDay{Year{1342}, std::chrono::month{5}, std::chrono::day{4}}, rdf4cpp::Timezone{std::chrono::hours{1}}};
+    static constexpr std::pair<YearMonthDay, rdf4cpp::OptionalTimezone> bv{YearMonthDay{Year{1342}, std::chrono::month{5}, std::chrono::day{5}}, rdf4cpp::Timezone{std::chrono::hours{1}}};
+    static constexpr std::pair<YearMonthDay, rdf4cpp::OptionalTimezone> inl{YearMonthDay{Year{1342}, std::chrono::month{5}, std::chrono::day{6}}, std::nullopt};
     static constexpr std::string_view as = "1342-5-4+1:0";
     static constexpr std::string_view bs = "1342-5-5+1:0";
     static constexpr std::string_view inls = "1342-5-6";

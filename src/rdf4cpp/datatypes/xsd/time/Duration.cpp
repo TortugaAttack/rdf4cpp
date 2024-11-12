@@ -32,7 +32,7 @@ capabilities::Default<xsd_duration>::cpp_type capabilities::Default<xsd_duration
     }
     auto hours = parse_duration_fragment<std::chrono::hours, uint64_t, 'H', identifier>(time);
     auto minutes = parse_duration_fragment<std::chrono::minutes, uint64_t, 'M', identifier>(time);
-    auto seconds = parse_duration_milliseconds<identifier>(time);
+    auto seconds = parse_duration_nanoseconds<identifier>(time);
 
     std::chrono::months m{};
     if (years.has_value()) {
@@ -41,7 +41,7 @@ capabilities::Default<xsd_duration>::cpp_type capabilities::Default<xsd_duration
     if (months.has_value()) {
         m += *months;
     }
-    std::chrono::milliseconds ms{};
+    std::chrono::nanoseconds ms{};
     if (days.has_value()) {
         ms += *days;
     }
@@ -84,7 +84,7 @@ bool capabilities::Default<xsd_duration>::serialize_canonical_string(cpp_type co
             buff;
     char* it = buff.data();
     std::chrono::months m_rem = value.first;
-    std::chrono::milliseconds ms_rem = value.second;
+    std::chrono::nanoseconds ms_rem = value.second;
     if (m_rem.count() < 0) {
         *(it++) = '-';
         m_rem = -m_rem;
@@ -189,17 +189,19 @@ capabilities::Inlineable<xsd_duration>::cpp_type capabilities::Inlineable<xsd_du
 template<>
 std::partial_ordering capabilities::Comparable<xsd_duration>::compare(cpp_type const &lhs, cpp_type const &rhs) noexcept {
     static constexpr std::array<rdf4cpp::TimePoint, 4> to_compare{
-            rdf4cpp::util::construct_timepoint(std::chrono::year{1696} / 9 / 1, std::chrono::milliseconds{0}),
-            rdf4cpp::util::construct_timepoint(std::chrono::year{1697} / 2 / 1, std::chrono::milliseconds{0}),
-            rdf4cpp::util::construct_timepoint(std::chrono::year{1903} / 3 / 1, std::chrono::milliseconds{0}),
-            rdf4cpp::util::construct_timepoint(std::chrono::year{1903} / 7 / 1, std::chrono::milliseconds{0}),
+            rdf4cpp::util::construct_timepoint(YearMonthDay{Year{1696}, std::chrono::month{9}, std::chrono::day{1}}, std::chrono::milliseconds{0}),
+            rdf4cpp::util::construct_timepoint(YearMonthDay{Year{1697}, std::chrono::month{2}, std::chrono::day{1}}, std::chrono::milliseconds{0}),
+            rdf4cpp::util::construct_timepoint(YearMonthDay{Year{1903}, std::chrono::month{3}, std::chrono::day{1}}, std::chrono::milliseconds{0}),
+            rdf4cpp::util::construct_timepoint(YearMonthDay{Year{1903}, std::chrono::month{7}, std::chrono::day{1}}, std::chrono::milliseconds{0}),
     };
-    auto cmp = [lhs, rhs](rdf4cpp::TimePoint tp) {
-        auto l = registry::util::add_duration_to_date_time(tp, lhs);
-        auto r = registry::util::add_duration_to_date_time(tp, rhs);
-        if (l.time_since_epoch().count().is_invalid() || r.time_since_epoch().count().is_invalid())
+    auto cmp = [lhs, rhs](const rdf4cpp::TimePoint& tp) noexcept {
+        try {
+            auto l = registry::util::add_duration_to_date_time(tp, lhs);
+            auto r = registry::util::add_duration_to_date_time(tp, rhs);
+            return registry::util::compare_time_points(l, std::nullopt, r, std::nullopt);
+        } catch (...) {
             return std::partial_ordering::unordered;
-        return registry::util::compare_time_points(registry::util::from_checked(l), std::nullopt, registry::util::from_checked(r), std::nullopt);
+        }
     };
     std::partial_ordering o = cmp(to_compare[0]);
     for (unsigned int i = 1; i < to_compare.size(); ++i) {

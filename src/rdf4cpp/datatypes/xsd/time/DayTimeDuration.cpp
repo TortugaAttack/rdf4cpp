@@ -30,9 +30,9 @@ capabilities::Default<xsd_dayTimeDuration>::cpp_type capabilities::Default<xsd_d
     }
     auto hours = parse_duration_fragment<std::chrono::hours, uint64_t, 'H', identifier>(time);
     auto minutes = parse_duration_fragment<std::chrono::minutes, uint64_t, 'M', identifier>(time);
-    auto seconds = parse_duration_milliseconds<identifier>(time);
+    auto seconds = parse_duration_nanoseconds<identifier>(time);
 
-    std::chrono::milliseconds ms{};
+    std::chrono::nanoseconds ms{};
     if (days.has_value()) {
         ms += *days;
     }
@@ -72,7 +72,7 @@ bool capabilities::Default<xsd_dayTimeDuration>::serialize_canonical_string(cpp_
                              registry::util::chrono_max_canonical_string_chars::seconds + 1>
             buff;
     char* it = buff.data();
-    std::chrono::milliseconds ms_rem = value;
+    std::chrono::nanoseconds ms_rem = value;
     if (ms_rem.count() < 0) {
         *(it++) = '-';
         ms_rem = -ms_rem;
@@ -111,7 +111,11 @@ bool capabilities::Default<xsd_dayTimeDuration>::serialize_canonical_string(cpp_
 
 template<>
 std::optional<storage::identifier::LiteralID> capabilities::Inlineable<xsd_dayTimeDuration>::try_into_inlined(cpp_type const &value) noexcept {
-    int64_t v = value.count();
+    auto ms = std::chrono::floor<std::chrono::milliseconds>(value);
+    if ((value - ms) != std::chrono::nanoseconds{0}) {
+        return std::nullopt;
+    }
+    int64_t v = ms.count();
     return util::try_pack_integral<storage::identifier::LiteralID>(v);
 }
 
