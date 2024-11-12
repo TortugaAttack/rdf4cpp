@@ -70,8 +70,8 @@ class Recipe(ConanFile):
         cmake.install()
         rmdir(self, os.path.join(self.package_folder, "cmake"))
         rmdir(self, os.path.join(self.package_folder, "share"))
-        copy(self, "LICENSE", src=self.recipe_folder, dst="licenses")
-        copy(self, os.path.join("serd", "COPYING"), src=self.build_folder, dst="licenses")
+        copy(self, "LICENSE", src=self.recipe_folder, dst=os.path.join(self.package_folder, "licenses"))
+        copy(self, os.path.join("serd", "COPYING"), src=self.build_folder, dst=os.path.join(self.package_folder, "licenses"))
 
     def package_info(self):
         self.cpp_info.libs = ["rdf4cpp"]
