@@ -231,19 +231,17 @@ nonstd::expected<IRI, IRIFactoryError> IRIFactory::create_and_validate(std::stri
 
 IRIFactoryError IRIFactory::assign_prefix(std::string_view prefix, std::string_view expanded) {
     using namespace util::char_matcher_detail;
-    static constexpr auto first_matcher = ASCIINumMatcher{} | PNCharsBaseMatcher;
     auto r = prefix | una::views::utf8;
     auto it = r.begin();
     if (it != r.end()) {
-        if (!first_matcher.match(*it)) {
+        if (!PNCharsBaseMatcher.match(*it)) {
             return IRIFactoryError::InvalidPrefix;
         }
         auto lastchar = *it;
         ++it;
         static constexpr auto pn_matcher = PNCharsMatcher | ASCIIPatternMatcher{"."};
         while (it != r.end()) {
-            if (!pn_matcher.match(*it))
-            {
+            if (!pn_matcher.match(*it)) {
                 return IRIFactoryError::InvalidPrefix;
             }
             lastchar = *it;
