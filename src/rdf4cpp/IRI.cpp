@@ -160,6 +160,12 @@ std::string_view IRI::identifier() const noexcept {
     return handle_.iri_backend().identifier;
 }
 
+FetchOrSerializeResult IRI::fetch_or_serialize_identifier(std::string_view &out, [[maybe_unused]] writer::BufWriterParts writer) const noexcept {
+    auto const id = identifier();
+    out = id;
+    return FetchOrSerializeResult::Fetched;
+}
+
 inline namespace shorthands {
 
 IRI operator""_iri(char const *str, size_t const len) {
