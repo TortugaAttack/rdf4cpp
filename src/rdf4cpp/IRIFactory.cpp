@@ -231,7 +231,7 @@ nonstd::expected<IRI, IRIFactoryError> IRIFactory::create_and_validate(std::stri
 
 IRIFactoryError IRIFactory::assign_prefix(std::string_view prefix, std::string_view expanded) {
     using namespace util::char_matcher_detail;
-    static constexpr auto first_matcher = ASCIINumMatcher{} | PNCharsUMatcher;
+    static constexpr auto first_matcher = ASCIINumMatcher{} | PNCharsBaseMatcher;
     auto r = prefix | una::views::utf8;
     auto it = r.begin();
     if (it != r.end()) {
