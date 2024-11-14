@@ -288,4 +288,84 @@ lex:Cow,dt:http://www.w3.org/1999/02/22-rdf-syntax-ns#langString,lang:spherical
 
         CHECK_EQ(w.view(), expected);
     }
+
+    struct TinyBuffer {
+        char buffer;
+    };
+
+    /**
+     * A serializer that fails to flush its data and has only a single byte of buffer space
+     * Implements `BufWriter`
+     */
+    struct FailWriter : writer::BufWriterBase<FailWriter, TinyBuffer> {
+        using Buffer = TinyBuffer;
+
+        FailWriter() {
+            write_area() = &buffer().buffer;
+            write_area_size() = 1;
+        }
+
+        bool finalize() noexcept {
+            return false; // fail
+        }
+
+        static void flush_impl([[maybe_unused]] Buffer &buffer,
+                               [[maybe_unused]] char *&write_area,
+                               [[maybe_unused]] size_t &write_area_size,
+                               [[maybe_unused]] size_t additional_cap) noexcept {
+            // pretend that flush failed, noop
+        }
+    };
+
+    TEST_CASE("fetch_or_serialize fail") {
+        SUBCASE("bnode") {
+            auto bn1 = BlankNode::make("abc");
+            CHECK(bn1.is_inlined());
+
+            FailWriter w;
+            std::string_view fetched;
+            auto const res = bn1.fetch_or_serialize_identifier(fetched, w);
+            CHECK_EQ(res, FetchOrSerializeResult::SerializationFailed);
+        }
+
+        SUBCASE("variable") {
+            SUBCASE("named") {
+                auto v = query::Variable::make_named("abc");
+                CHECK(v.is_inlined());
+
+                FailWriter w;
+                std::string_view fetched;
+                auto const res = v.fetch_or_serialize_name(fetched, w);
+                CHECK_EQ(res, FetchOrSerializeResult::SerializationFailed);
+            }
+
+            SUBCASE("anon") {
+                auto v = query::Variable::make_anonymous("abc");
+                CHECK(v.is_inlined());
+
+                FailWriter w;
+                std::string_view fetched;
+                auto const res = v.fetch_or_serialize_name(fetched, w);
+                CHECK_EQ(res, FetchOrSerializeResult::SerializationFailed);
+            }
+        }
+
+        SUBCASE("literal") {
+            auto l = Literal::make_typed_from_value<datatypes::xsd::Float>(1.3);
+            CHECK(l.is_inlined());
+
+            FailWriter w;
+            std::string_view fetched;
+
+            SUBCASE("lexical_form") {
+                auto const res = l.fetch_or_serialize_lexical_form(fetched, w);
+                CHECK_EQ(res, FetchOrSerializeResult::SerializationFailed);
+            }
+
+            SUBCASE("lexical_form") {
+                auto const res = l.fetch_or_serialize_simplified_lexical_form(fetched, w);
+                CHECK_EQ(res, FetchOrSerializeResult::SerializationFailed);
+            }
+        }
+    }
 }
