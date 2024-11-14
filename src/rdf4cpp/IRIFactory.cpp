@@ -1,6 +1,9 @@
 #include "IRIFactory.hpp"
 
 #include <rdf4cpp/datatypes/registry/DatatypeRegistry.hpp>
+#include <rdf4cpp/util/CharMatcher.hpp>
+
+#include <uni_algo/all.h>
 
 namespace rdf4cpp {
 
@@ -226,7 +229,33 @@ nonstd::expected<IRI, IRIFactoryError> IRIFactory::create_and_validate(std::stri
     return IRI::make_unchecked(iri, node_storage);
 }
 
-void IRIFactory::assign_prefix(std::string_view prefix, std::string_view expanded) {
+IRIFactoryError IRIFactory::assign_prefix(std::string_view prefix, std::string_view expanded) {
+    using namespace util::char_matcher_detail;
+    auto r = prefix | una::views::utf8;
+    auto it = r.begin();
+    if (it != r.end()) {
+        if (!PNCharsBaseMatcher.match(*it)) {
+            return IRIFactoryError::InvalidPrefix;
+        }
+        auto lastchar = *it;
+        ++it;
+        static constexpr auto pn_matcher = PNCharsMatcher | ASCIIPatternMatcher{"."};
+        while (it != r.end()) {
+            if (!pn_matcher.match(*it)) {
+                return IRIFactoryError::InvalidPrefix;
+            }
+            lastchar = *it;
+            ++it;
+        }
+        if (lastchar == '.') {
+            return IRIFactoryError::InvalidPrefix;
+        }
+    }
+    // checking expanded can only be done after the full IRI was created
+    assign_prefix_unchecked(prefix, expanded);
+    return IRIFactoryError::Ok;
+}
+void IRIFactory::assign_prefix_unchecked(std::string_view prefix, std::string_view expanded) {
     std::string pre{prefix};
     prefixes[pre] = expanded;
 }
