@@ -230,21 +230,9 @@ TEST_CASE("IRI fetch or serialize") {
     writer::StringWriter w{buf};
 
     std::string_view fetched;
-    switch (x.fetch_or_serialize_identifier(fetched, w)) {
-        case FetchOrSerializeResult::Fetched: {
-            CHECK_EQ(fetched, expected);
-            break;
-        }
-        case FetchOrSerializeResult::Serialized: {
-            w.finalize();
-            CHECK_EQ(buf, expected);
-            break;
-        }
-        default: {
-            FAIL("fetch or seralize failed");
-        }
-    }
-
+    auto const res = x.fetch_or_serialize_identifier(fetched, w);
+    REQUIRE_EQ(res, FetchOrSerializeResult::Fetched);
+    CHECK_EQ(fetched, expected);
 }
 
 template<typename T>
@@ -392,7 +380,11 @@ TEST_CASE("variable inlining") {
         writer::StringWriter w{buf};
 
         std::string_view fetched;
-        switch (var.fetch_or_serialize_name(fetched, w)) {
+        auto res = var.fetch_or_serialize_name(fetched, w);
+        auto const expected_res = var.is_inlined() ? FetchOrSerializeResult::Serialized : FetchOrSerializeResult::Fetched;
+        CHECK_EQ(res, expected_res);
+
+        switch (res) {
             case FetchOrSerializeResult::Fetched: {
                 CHECK_EQ(fetched, expected);
                 break;
@@ -491,7 +483,11 @@ TEST_CASE("bnode inlining") {
         writer::StringWriter w{buf};
 
         std::string_view fetched;
-        switch (var.fetch_or_serialize_identifier(fetched, w)) {
+        auto const res = var.fetch_or_serialize_identifier(fetched, w);
+        auto const expected_res = var.is_inlined() ? FetchOrSerializeResult::Serialized : FetchOrSerializeResult::Fetched;
+        CHECK_EQ(res, expected_res);
+
+        switch (res) {
             case FetchOrSerializeResult::Fetched: {
                 CHECK_EQ(fetched, expected);
                 break;
