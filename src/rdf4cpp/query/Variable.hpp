@@ -57,6 +57,11 @@ public:
     [[nodiscard]] CowString name() const;
 
     /**
+     * @see Literal::fetch_or_serialize_lexical_form
+     */
+    [[nodiscard]] FetchOrSerializeResult fetch_or_serialize_name(std::string_view &out, writer::BufWriterParts writer) const noexcept;
+
+    /**
      * See Node::serialize
      */
     bool serialize(writer::BufWriterParts writer) const noexcept;

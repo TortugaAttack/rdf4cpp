@@ -132,6 +132,20 @@ CowString BlankNode::identifier() const noexcept {
     return CowString{CowString::borrowed, handle_.bnode_backend().identifier};
 }
 
+FetchOrSerializeResult BlankNode::fetch_or_serialize_identifier(std::string_view &out, writer::BufWriterParts writer) const noexcept {
+    if (handle_.is_inlined()) {
+        auto const inlined = detail_bnode_inlining::from_inlined(handle_.id());
+        if (!rdf4cpp::writer::write_str(inlined.view().identifier, writer)) [[unlikely]] {
+            return FetchOrSerializeResult::SerializationFailed;
+        }
+
+        return FetchOrSerializeResult::Serialized;
+    }
+
+    out = handle_.bnode_backend().identifier;
+    return FetchOrSerializeResult::Fetched;
+}
+
 bool BlankNode::serialize(writer::BufWriterParts const writer) const noexcept {
     if (null()) {
         return rdf4cpp::writer::write_str("null", writer);

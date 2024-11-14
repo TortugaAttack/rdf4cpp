@@ -222,6 +222,19 @@ TEST_CASE("IRI UUID") {
     CHECK(regex::Regex{"^urn:uuid:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"}.regex_match(uuid.identifier()));
 }
 
+TEST_CASE("IRI fetch or serialize") {
+    auto const x = IRI::make("https://example.com#some-iri");
+    auto const expected = x.identifier();
+
+    std::string buf;
+    writer::StringWriter w{buf};
+
+    std::string_view fetched;
+    auto const res = x.fetch_or_serialize_identifier(fetched, w);
+    REQUIRE_EQ(res, FetchOrSerializeResult::Fetched);
+    CHECK_EQ(fetched, expected);
+}
+
 template<typename T>
 struct get_find_values {};
 
@@ -360,11 +373,40 @@ TEST_CASE("variable inlining") {
         CHECK_EQ(var.backend_handle().id(), again3.backend_handle().id());
     };
 
+    auto const check_fetch_or_serialize = [&](query::Variable const &var) {
+        auto const expected = var.name();
+
+        std::string buf;
+        writer::StringWriter w{buf};
+
+        std::string_view fetched;
+        auto res = var.fetch_or_serialize_name(fetched, w);
+        auto const expected_res = var.is_inlined() ? FetchOrSerializeResult::Serialized : FetchOrSerializeResult::Fetched;
+        CHECK_EQ(res, expected_res);
+
+        switch (res) {
+            case FetchOrSerializeResult::Fetched: {
+                CHECK_EQ(fetched, expected);
+                break;
+            }
+            case FetchOrSerializeResult::Serialized: {
+                w.finalize();
+                CHECK_EQ(buf, expected);
+                break;
+            }
+            default: {
+                FAIL("fetch_or_serialize failed");
+                break;
+            }
+        }
+    };
+
     auto v1 = query::Variable::make_named("abcde");
     CHECK(v1.is_inlined());
     CHECK_FALSE(v1.is_anonymous());
     CHECK_EQ(v1.name(), "abcde");
     check_node_storage_transfer(v1);
+    check_fetch_or_serialize(v1);
 
     auto v2 = query::Variable::make_named("fghij");
     CHECK(v2.is_inlined());
@@ -373,6 +415,7 @@ TEST_CASE("variable inlining") {
     CHECK_EQ(v1.name().size(), v2.name().size());
     CHECK_EQ(v1.order(v2), std::strong_ordering::less);
     check_node_storage_transfer(v2);
+    check_fetch_or_serialize(v2);
 
     auto v3 = query::Variable::make_anonymous(v1.name());
     CHECK(v3.is_inlined());
@@ -382,36 +425,41 @@ TEST_CASE("variable inlining") {
     CHECK_NE(v3, v1);
     CHECK_EQ(v3.order(v1), std::strong_ordering::greater);
     check_node_storage_transfer(v3);
+    check_fetch_or_serialize(v3);
 
     auto v4 = query::Variable::make_named("abcdef");
     CHECK_FALSE(v4.is_inlined());
     CHECK_FALSE(v4.is_anonymous());
     CHECK_EQ(v4.name(), "abcdef");
     CHECK_EQ(v4.order(v1), std::strong_ordering::greater);
+    check_fetch_or_serialize(v4);
 
     auto v5 = query::Variable::make_anonymous("fghijk");
     CHECK_FALSE(v5.is_inlined());
     CHECK(v5.is_anonymous());
     CHECK_EQ(v5.name(), "fghijk");
     CHECK_EQ(v5.order(v4), std::strong_ordering::greater);
+    check_fetch_or_serialize(v5);
 
     auto v6 = query::Variable::make_named("a");
     CHECK(v6.is_inlined());
     CHECK_FALSE(v6.is_anonymous());
     CHECK_EQ(v6.name(), "a");
+    check_fetch_or_serialize(v6);
 
     auto v7 = query::Variable::make_anonymous("a");
     CHECK(v7.is_inlined());
     CHECK(v7.is_anonymous());
     CHECK_EQ(v7.name(), "a");
-
     CHECK_EQ(v7.order(v6), std::strong_ordering::greater);
+    check_fetch_or_serialize(v7);
 
     auto v8 = query::Variable::make_named("aaaaaa");
     CHECK_FALSE(v8.is_inlined());
     CHECK_FALSE(v8.is_anonymous());
     CHECK_GT(v8.name().size(), v1.name().size());
     CHECK_EQ(v8.order(v1), std::strong_ordering::less);
+    check_fetch_or_serialize(v8);
 }
 
 TEST_CASE("bnode inlining") {
@@ -428,10 +476,39 @@ TEST_CASE("bnode inlining") {
         CHECK_EQ(bnode.backend_handle().id(), again3.backend_handle().id());
     };
 
+    auto const check_fetch_or_serialize = [&](BlankNode const &var) {
+        auto const expected = var.identifier();
+
+        std::string buf;
+        writer::StringWriter w{buf};
+
+        std::string_view fetched;
+        auto const res = var.fetch_or_serialize_identifier(fetched, w);
+        auto const expected_res = var.is_inlined() ? FetchOrSerializeResult::Serialized : FetchOrSerializeResult::Fetched;
+        CHECK_EQ(res, expected_res);
+
+        switch (res) {
+            case FetchOrSerializeResult::Fetched: {
+                CHECK_EQ(fetched, expected);
+                break;
+            }
+            case FetchOrSerializeResult::Serialized: {
+                w.finalize();
+                CHECK_EQ(buf, expected);
+                break;
+            }
+            default: {
+                FAIL("fetch_or_serialize failed");
+                break;
+            }
+        }
+    };
+
     auto v1 = BlankNode::make("abcdef");
     CHECK(v1.is_inlined());
     CHECK_EQ(v1.identifier(), "abcdef");
     check_node_storage_transfer(v1);
+    check_fetch_or_serialize(v1);
 
     auto v2 = BlankNode::make("fghijk");
     CHECK(v2.is_inlined());
@@ -439,19 +516,23 @@ TEST_CASE("bnode inlining") {
     CHECK_EQ(v1.identifier().size(), v2.identifier().size());
     CHECK_EQ(v1.order(v2), std::strong_ordering::less);
     check_node_storage_transfer(v2);
+    check_fetch_or_serialize(v2);
 
     auto v3 = BlankNode::make("abcdefg");
     CHECK_FALSE(v3.is_inlined());
     CHECK_EQ(v3.identifier(), "abcdefg");
     CHECK_EQ(v3.order(v1), std::strong_ordering::greater);
+    check_fetch_or_serialize(v3);
 
     auto v4 = BlankNode::make("a");
     CHECK(v4.is_inlined());
     CHECK_EQ(v4.identifier(), "a");
     CHECK_EQ(v4.order(v1), std::strong_ordering::less);
+    check_fetch_or_serialize(v4);
 
     auto v5 = BlankNode::make("aaaaaaa");
     CHECK_FALSE(v5.is_inlined());
     CHECK_GT(v5.identifier().size(), v1.identifier().size());
     CHECK_EQ(v5.order(v1), std::strong_ordering::less);
+    check_fetch_or_serialize(v5);
 }

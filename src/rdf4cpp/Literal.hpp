@@ -18,12 +18,6 @@
 
 namespace rdf4cpp {
 
-enum struct FetchOrSerializeResult {
-    Fetched, //< result was already materialized and was fetched
-    Serialized, //< result was successfully serialized
-    SerializationFailed, //< result had to be serialized, but serialization failed
-};
-
 /**
  * An RDF Literal.
  *

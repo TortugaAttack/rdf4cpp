@@ -150,6 +150,20 @@ CowString Variable::name() const {
     return CowString{CowString::borrowed, handle_.variable_backend().name};
 }
 
+FetchOrSerializeResult Variable::fetch_or_serialize_name(std::string_view &out, writer::BufWriterParts writer) const noexcept {
+    if (handle_.is_inlined()) {
+        auto const inlined_repr = detail_variable_inlining::from_inlined(handle_.id());
+        if (!rdf4cpp::writer::write_str(inlined_repr.view().name, writer)) {
+            return FetchOrSerializeResult::SerializationFailed;
+        }
+
+        return FetchOrSerializeResult::Serialized;
+    }
+
+    out = handle_.variable_backend().name;
+    return FetchOrSerializeResult::Fetched;
+}
+
 bool Variable::serialize(writer::BufWriterParts const writer) const noexcept {
     if (null()) {
         return rdf4cpp::writer::write_str("null", writer);
