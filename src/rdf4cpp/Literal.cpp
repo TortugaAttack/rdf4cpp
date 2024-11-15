@@ -1368,8 +1368,7 @@ Literal Literal::add(Literal const &other, storage::DynNodeStoragePtr node_stora
     }
     // DateTime(&Subclasses) + Duration(&Subclasses)
     {
-        try
-        {
+        try {
             auto this_dt = this->cast_to_supertype_value<datatypes::xsd::DateTime>();
             auto other_dt = other.cast_to_supertype_value<datatypes::xsd::Duration>();
             if (this_dt.has_value() && other_dt.has_value()) {
@@ -2278,14 +2277,14 @@ std::optional<Year> Literal::year() const noexcept {
     if (!casted.has_value())
         return std::nullopt;
     auto [date, _] = util::deconstruct_timepoint(casted->first);
-    return date.year;
+    return date.year();
 }
 
 Literal Literal::as_year(storage::DynNodeStoragePtr node_storage) const {
     auto r = this->year();
     if (!r.has_value())
         return Literal{};
-    return Literal::make_typed_from_value<datatypes::xsd::Integer>(r->year, select_node_storage(node_storage));
+    return Literal::make_typed_from_value<datatypes::xsd::Integer>(static_cast<int64_t>(*r), select_node_storage(node_storage));
 }
 
 std::optional<std::chrono::month> Literal::month() const noexcept {
@@ -2296,7 +2295,7 @@ std::optional<std::chrono::month> Literal::month() const noexcept {
     if (!casted.has_value())
         return std::nullopt;
     auto [date, _] = util::deconstruct_timepoint(casted->first);
-    return date.month;
+    return date.month();
 }
 
 Literal Literal::as_month(storage::DynNodeStoragePtr node_storage) const {
@@ -2314,7 +2313,7 @@ std::optional<std::chrono::day> Literal::day() const noexcept {
     if (!casted.has_value())
         return std::nullopt;
     auto [date, _] = util::deconstruct_timepoint(casted->first);
-    return date.day;
+    return date.day();
 }
 
 Literal Literal::as_day(storage::DynNodeStoragePtr node_storage) const {

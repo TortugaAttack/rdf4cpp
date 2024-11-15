@@ -90,6 +90,20 @@ public:
         r /= other;
         return r;
     }
+
+    friend constexpr CheckedIntegral abs(CheckedIntegral const &val) noexcept {
+        if constexpr (std::is_unsigned_v<I>) {
+            return val;
+        } else {
+            if (val.value >= 0) {
+                return val;
+            }
+
+            CheckedIntegral ret{0, val.invalid};
+            ret.invalid |= __builtin_sub_overflow(0, val.value, &ret.value);
+            return ret;
+        }
+    }
 };
 
 }  // namespace rdf4cpp::util
