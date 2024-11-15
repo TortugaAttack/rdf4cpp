@@ -144,7 +144,7 @@ private:
     int64_t value_;
 
 public:
-    explicit constexpr Year(int64_t value = 0) noexcept : value_{value} {
+    explicit constexpr Year(int64_t y = 0) noexcept : value_{y} {
     }
 
     constexpr explicit operator int64_t() const noexcept {
@@ -246,10 +246,10 @@ public:
     }
 
     friend constexpr YearMonth operator+(YearMonth const &ym, std::chrono::years d) noexcept {
-        return YearMonth{ym.year_ + d, ym.month()};
+        return YearMonth{ym.year_ + d, ym.month_};
     }
     friend constexpr YearMonth operator+(std::chrono::years d, YearMonth const &ym) noexcept {
-        return YearMonth{ym.year_ + d, ym.month()};
+        return YearMonth{ym.year_ + d, ym.month_};
     }
 
     constexpr YearMonth& operator+=(std::chrono::years d) noexcept {
@@ -258,10 +258,10 @@ public:
     }
 
     friend constexpr YearMonth operator+(YearMonth const &ym, std::chrono::months d) noexcept {
-        return create_normalized(static_cast<int64_t>(ym.year()), static_cast<unsigned int>(ym.month()) + d.count());
+        return create_normalized(static_cast<int64_t>(ym.year_), static_cast<unsigned int>(ym.month_) + d.count());
     }
     friend constexpr YearMonth operator+(std::chrono::months d, YearMonth const &ym) noexcept {
-        return create_normalized(static_cast<int64_t>(ym.year()), static_cast<unsigned int>(ym.month()) + d.count());
+        return create_normalized(static_cast<int64_t>(ym.year_), static_cast<unsigned int>(ym.month_) + d.count());
     }
 
     constexpr YearMonth& operator+=(std::chrono::months d) noexcept {
@@ -270,14 +270,14 @@ public:
     }
 
     friend constexpr YearMonth operator-(YearMonth const &ym, std::chrono::years d) noexcept {
-        return {ym.year() - d, ym.month()};
+        return {ym.year_ - d, ym.month_};
     }
     friend constexpr YearMonth operator-(YearMonth const &ym, std::chrono::months d) noexcept {
-        return create_normalized(static_cast<int64_t>(ym.year()), static_cast<unsigned int>(ym.month()) - d.count());
+        return create_normalized(static_cast<int64_t>(ym.year_), static_cast<unsigned int>(ym.month_) - d.count());
     }
 
     friend constexpr std::chrono::months operator-(YearMonth const &a, YearMonth const &b) noexcept {
-        return (a.year() - b.year()) + (a.month() - b.month());
+        return (a.year_ - b.year_) + (a.month_ - b.month_);
     }
 
     constexpr YearMonth& operator-=(std::chrono::years d) noexcept {
@@ -302,9 +302,9 @@ private:
     Month month_ = Month{1};
     Day day_ = Day{1};
 
-    static constexpr std::chrono::day last_day_in_month(Year year, std::chrono::month month) noexcept {
+    static constexpr std::chrono::day last_day_in_month(Year year, Month month) noexcept {
         assert(month.ok());
-        constexpr unsigned char common[] = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
+        constexpr unsigned char common[]{31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
         auto m = static_cast<unsigned int>(month);
         return std::chrono::day{m != 2 || !year.is_leap() ? common[m - 1] : 29u};
     }
@@ -324,7 +324,7 @@ public:
     constexpr YearMonthDay(YearMonth const &ym, Day d) noexcept
         : year_(ym.year()), month_(ym.month()), day_(d) {
     }
-    constexpr YearMonthDay(YearMonth const & ym, std::chrono::last_spec) noexcept
+    constexpr YearMonthDay(YearMonth const &ym, std::chrono::last_spec) noexcept
         : YearMonthDay(ym.year(), ym.month(), std::chrono::last) {
     }
     template<typename P>
