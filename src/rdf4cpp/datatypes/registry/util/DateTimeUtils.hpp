@@ -176,26 +176,18 @@ inline char *canonical_seconds_remove_empty_millis(char *it) {
 
 inline TimePoint add_duration_to_date_time(TimePoint const &tp, std::pair<std::chrono::months, std::chrono::nanoseconds> d) {
     // only gets smaller, no overflow possible
-    auto days = std::chrono::floor<std::chrono::days>(tp);
-    auto time = tp - days;
-    YearMonthDay ymd{days};
+    auto [ymd, time] = rdf4cpp::util::deconstruct_timepoint(tp);
 
-    ::rdf4cpp::util::CheckedIntegral<int64_t> checked_m = static_cast<unsigned int>(ymd.month());
-    checked_m += static_cast<int64_t>(ymd.year()) * 12; // it did fit into a 64 bit TimePoint before, so this cannot overflow
+    boost::multiprecision::checked_int128_t checked_m = static_cast<unsigned int>(ymd.month());
+    checked_m += boost::multiprecision::checked_int128_t{static_cast<int64_t>(ymd.year())} * 12;
     checked_m += d.first.count();
 
     auto const checked_y = (checked_m -1 ) / 12;
-    if (checked_y.is_invalid()) [[unlikely]] {
-        throw std::overflow_error{"overflow in addition of date time and duration"};
-    }
 
     checked_m = abs(checked_m - 1);
-    if (checked_m.is_invalid()) [[unlikely]] {
-        throw std::overflow_error{"overflow in addition of date time and duration"};
-    }
 
-    auto const y = Year{checked_y.get_value()};
-    auto const m = std::chrono::month{static_cast<unsigned>(checked_m.get_value() % 12 + 1)};
+    auto const y = Year{static_cast<int64_t>(checked_y)};
+    auto const m = std::chrono::month{static_cast<unsigned>(static_cast<int64_t>(checked_m % 12 + 1))};
 
     ymd = YearMonthDay{y, m, ymd.day()};
     if (!ymd.ok()) {
@@ -205,6 +197,8 @@ inline TimePoint add_duration_to_date_time(TimePoint const &tp, std::pair<std::c
     TimePoint date = ymd.to_time_point_local();
     date += time;
     date += d.second;
+
+    rdf4cpp::util::deconstruct_timepoint(date); // check if it still fits into year, throws if not
 
     return date;
 }

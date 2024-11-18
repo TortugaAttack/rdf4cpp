@@ -697,7 +697,10 @@ TEST_CASE("arithmetic") {
     CHECK((Literal::make_typed<datatypes::xsd::DateTime>("2042-5-6T1:2:3") + Literal::make_typed<datatypes::xsd::Duration>("P1Y14MT5S")) == Literal::make_typed<datatypes::xsd::DateTime>("2044-7-6T1:2:8"));
     CHECK((Literal::make_typed<datatypes::xsd::Date>("2042-5-6") + Literal::make_typed<datatypes::xsd::YearMonthDuration>("P1Y")) == Literal::make_typed<datatypes::xsd::Date>("2043-5-6"));
     CHECK((Literal::make_typed<datatypes::xsd::Time>("1:2:3") + Literal::make_typed<datatypes::xsd::DayTimeDuration>("P1DT1S")) == Literal::make_typed<datatypes::xsd::Time>("1:2:4"));
-    CHECK((Literal::make_typed<datatypes::xsd::DateTime>("2042-5-6T1:2:3") + Literal::make_typed_from_value<datatypes::xsd::YearMonthDuration>(std::chrono::months::max())).null()); // overflow
+    CHECK(!(Literal::make_typed<datatypes::xsd::DateTime>("2042-5-6T1:2:3") + Literal::make_typed_from_value<datatypes::xsd::YearMonthDuration>(std::chrono::months::max())).null());
+    CHECK((Literal::make_typed<datatypes::xsd::DateTime>(std::format("{}-5-6T1:2:3", rdf4cpp::Year::max())) + Literal::make_typed_from_value<datatypes::xsd::YearMonthDuration>(std::chrono::months::max())).null());
+    CHECK((Literal::make_typed<datatypes::xsd::DateTime>(std::format("{}-5-6T1:2:3", rdf4cpp::Year::max())) + Literal::make_typed_from_value<datatypes::xsd::YearMonthDuration>(std::chrono::months{12})).null());
+    CHECK((Literal::make_typed<datatypes::xsd::DateTime>(std::format("{}-5-6T1:2:3", rdf4cpp::Year::max())) + Literal::make_typed_from_value<datatypes::xsd::DayTimeDuration>(std::chrono::years{1})).null());
     CHECK(!(Literal::make_typed<datatypes::xsd::DateTime>("2042-5-6T1:2:3") + Literal::make_typed_from_value<datatypes::xsd::DayTimeDuration>(std::chrono::nanoseconds::max())).null());
 
     CHECK((Literal::make_typed<datatypes::xsd::DateTime>("2042-5-6T1:2:3") - Literal::make_typed<datatypes::xsd::DayTimeDuration>("P1DT1S")) == Literal::make_typed<datatypes::xsd::DateTime>("2042-5-5T1:2:2"));
@@ -706,7 +709,10 @@ TEST_CASE("arithmetic") {
     CHECK((Literal::make_typed<datatypes::xsd::DateTime>("2042-5-6T1:2:3") - Literal::make_typed<datatypes::xsd::Duration>("P1Y2MT3S")) == Literal::make_typed<datatypes::xsd::DateTime>("2041-3-6T1:2:0"));
     CHECK((Literal::make_typed<datatypes::xsd::Date>("2042-5-6") - Literal::make_typed<datatypes::xsd::YearMonthDuration>("P1Y")) == Literal::make_typed<datatypes::xsd::Date>("2041-5-6"));
     CHECK((Literal::make_typed<datatypes::xsd::Time>("1:2:3") - Literal::make_typed<datatypes::xsd::DayTimeDuration>("P1DT1S")) == Literal::make_typed<datatypes::xsd::Time>("1:2:2"));
-    CHECK((Literal::make_typed<datatypes::xsd::DateTime>("-2042-5-6T1:2:3") - Literal::make_typed_from_value<datatypes::xsd::YearMonthDuration>(std::chrono::months::max())).null()); // overflow
+    CHECK(!(Literal::make_typed<datatypes::xsd::DateTime>("-2042-5-6T1:2:3") - Literal::make_typed_from_value<datatypes::xsd::YearMonthDuration>(std::chrono::months::max())).null());
+    CHECK((Literal::make_typed<datatypes::xsd::DateTime>(std::format("{}-5-6T1:2:3", Year::min())) - Literal::make_typed_from_value<datatypes::xsd::YearMonthDuration>(std::chrono::months::max())).null());
+    CHECK((Literal::make_typed<datatypes::xsd::DateTime>(std::format("{}-1-6T1:2:3", Year::min())) - Literal::make_typed_from_value<datatypes::xsd::YearMonthDuration>(std::chrono::months{12})).null());
+    CHECK((Literal::make_typed<datatypes::xsd::DateTime>(std::format("{}-1-6T1:2:3", Year::min())) - Literal::make_typed_from_value<datatypes::xsd::DayTimeDuration>(std::chrono::years{1})).null());
     CHECK(!(Literal::make_typed<datatypes::xsd::DateTime>("-2042-5-6T1:2:3") - Literal::make_typed_from_value<datatypes::xsd::DayTimeDuration>(std::chrono::nanoseconds::max())).null());
 
     CHECK((Literal::make_typed<datatypes::xsd::DayTimeDuration>("P1DT1S") + Literal::make_typed<datatypes::xsd::DayTimeDuration>("P1DT1H")) == Literal::make_typed<datatypes::xsd::DayTimeDuration>("P2DT1H1S"));
