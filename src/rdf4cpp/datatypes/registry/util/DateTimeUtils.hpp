@@ -77,14 +77,19 @@ std::chrono::time_point<C, std::chrono::duration<int64_t, R>> from_checked(std::
  * @param d
  * @return
  */
-template<std::integral I>
-bool fits_into(double d) {
-    if (std::isnan(d) || std::isinf(d))
+template<std::integral I, typename J>
+bool fits_into(J d) {
+    if constexpr (std::is_floating_point_v<J>) {
+        if (std::isnan(d) || std::isinf(d)) {
+            return false;
+        }
+    }
+    if (d >= static_cast<J>(std::numeric_limits<I>::max())) {
         return false;
-    if (d >= static_cast<double>(std::numeric_limits<I>::max()))
+    }
+    if (d <= static_cast<J>(std::numeric_limits<I>::min())) {
         return false;
-    if (d <= static_cast<double>(std::numeric_limits<I>::min()))
-        return false;
+    }
     return true;
 }
 
@@ -169,26 +174,31 @@ inline char *canonical_seconds_remove_empty_millis(char *it) {
     return it;
 }
 
-inline rdf4cpp::TimePoint add_duration_to_date_time(const rdf4cpp::TimePoint& tp, std::pair<std::chrono::months, std::chrono::nanoseconds> d) {
+inline TimePoint add_duration_to_date_time(TimePoint const &tp, std::pair<std::chrono::months, std::chrono::nanoseconds> d) {
     // only gets smaller, no overflow possible
-    auto days = std::chrono::floor<std::chrono::days>(tp);
-    auto time = tp - days;
-    rdf4cpp::YearMonthDay ymd{days};
+    auto [ymd, time] = rdf4cpp::util::deconstruct_timepoint(tp);
 
-    int64_t m = static_cast<unsigned int>(ymd.month);
-    m += ymd.year.year * 12; // it did fit into a 64 bit TimePoint before, so this cannot overflow
+    boost::multiprecision::checked_int128_t checked_m = static_cast<unsigned int>(ymd.month());
+    checked_m += boost::multiprecision::checked_int128_t{static_cast<int64_t>(ymd.year())} * 12;
+    checked_m += d.first.count();
 
-    m += d.first.count();
-    int64_t const y = (m-1) / 12;
-    m = std::abs(m-1) % 12 + 1;
+    auto const checked_y = (checked_m -1 ) / 12;
 
-    ymd = rdf4cpp::YearMonthDay{rdf4cpp::Year(y), std::chrono::month{static_cast<unsigned int>(m)}, ymd.day};
-    if (!ymd.ok())
-        ymd = rdf4cpp::YearMonthDay{ymd.year, ymd.month, std::chrono::last};
+    checked_m = abs(checked_m - 1);
 
-    rdf4cpp::TimePoint date = ymd.to_time_point_local();
+    auto const y = Year{static_cast<int64_t>(checked_y)};
+    auto const m = std::chrono::month{static_cast<unsigned>(static_cast<int64_t>(checked_m % 12 + 1))};
+
+    ymd = YearMonthDay{y, m, ymd.day()};
+    if (!ymd.ok()) {
+        ymd = YearMonthDay{ymd.year(), ymd.month(), std::chrono::last};
+    }
+
+    TimePoint date = ymd.to_time_point_local();
     date += time;
     date += d.second;
+
+    rdf4cpp::util::deconstruct_timepoint(date); // check if it still fits into year, throws if not
 
     return date;
 }

@@ -45,11 +45,12 @@ std::optional<storage::identifier::LiteralID> capabilities::Inlineable<xsd_gYear
     if (value.second.has_value()) [[unlikely]] {
         return std::nullopt;
     }
-    if (!util::fits_into<int16_t>(value.first.year.year)) [[unlikely]] {
+    auto const yearint = static_cast<int64_t>(value.first.year());
+    if (!util::fits_into<int16_t>(yearint)) [[unlikely]] {
         return std::nullopt;
     }
-    return util::pack<storage::identifier::LiteralID>(InliningHelperYearMonth{static_cast<int16_t>(value.first.year.year),
-                                                                                    static_cast<uint8_t>(static_cast<unsigned int>(value.first.month))});
+    return util::pack<storage::identifier::LiteralID>(InliningHelperYearMonth{static_cast<int16_t>(yearint),
+                                                                                static_cast<uint8_t>(static_cast<unsigned int>(value.first.month()))});
 }
 
 template<>
@@ -61,7 +62,7 @@ capabilities::Inlineable<xsd_gYearMonth>::cpp_type capabilities::Inlineable<xsd_
 template<>
 std::partial_ordering capabilities::Comparable<xsd_gYearMonth>::compare(cpp_type const &lhs, cpp_type const &rhs) noexcept {
     auto ym_to_tp = [](YearMonth const & t) -> rdf4cpp::TimePoint {
-        return rdf4cpp::util::construct_timepoint(YearMonthDay{t.year, t.month, std::chrono::last}, rdf4cpp::util::time_point_replacement_time_of_day);
+        return rdf4cpp::util::construct_timepoint(YearMonthDay{t.year(), t.month(), std::chrono::last}, rdf4cpp::util::time_point_replacement_time_of_day);
     };
     return registry::util::compare_time_points(ym_to_tp(lhs.first), lhs.second, ym_to_tp(rhs.first), rhs.second);
 }
@@ -69,13 +70,13 @@ std::partial_ordering capabilities::Comparable<xsd_gYearMonth>::compare(cpp_type
 template<>
 template<>
 capabilities::Subtype<xsd_gYearMonth>::super_cpp_type<0> capabilities::Subtype<xsd_gYearMonth>::into_supertype<0>(cpp_type const &value) noexcept {
-    return std::make_pair(YearMonthDay{value.first.year, value.first.month, std::chrono::last}, value.second);
+    return std::make_pair(YearMonthDay{value.first.year(), value.first.month(), std::chrono::last}, value.second);
 }
 
 template<>
 template<>
 nonstd::expected<capabilities::Subtype<xsd_gYearMonth>::cpp_type, DynamicError> capabilities::Subtype<xsd_gYearMonth>::from_supertype<0>(super_cpp_type<0> const &value) noexcept {
-    return std::make_pair(YearMonth{value.first.year, value.first.month}, value.second);
+    return std::make_pair(YearMonth{value.first.year(), value.first.month()}, value.second);
 }
 #endif
 
