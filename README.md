@@ -23,7 +23,7 @@ conan remote add dice-group https://conan.dice-research.org/artifactory/api/cona
 To use rdf4cpp, add it to your `conanfile.txt`:
 ```
 [requires]
-rdf4cpp/0.0.27
+rdf4cpp/0.0.27.1
 ```
 
 Note:
@@ -37,7 +37,7 @@ include(FetchContent)
 FetchContent_Declare(
         rdf4cpp
         GIT_REPOSITORY "${CMAKE_CURRENT_SOURCE_DIR}/../"
-        GIT_TAG v0.0.27
+        GIT_TAG v0.0.27.1
         GIT_SHALLOW TRUE
 )
 FetchContent_MakeAvailable(rdf4cpp)
