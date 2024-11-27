@@ -36,9 +36,9 @@ namespace conversion_detail {
  */
 template<LiteralDatatype BaseType,
          LiteralDatatype Type,
-         template<LiteralDatatype> typename Conversion,
-         template<LiteralDatatype> typename HasConversion,
-         template<LiteralDatatype, LiteralDatatype> typename RankRule,
+         template<typename> typename Conversion,
+         template<typename> typename HasConversion,
+         template<typename, typename> typename RankRule,
          ConversionLayer LayerAcc>
 consteval ConversionLayer auto make_conversion_layer_impl() {
     if constexpr (!HasConversion<Type>::value) {
