@@ -57,7 +57,7 @@ namespace rdf4cpp::util::char_matcher_detail::HWY_NAMESPACE {
         // => comparisons need to evaluate as true for the logic to work
         V const zero = Set(d, static_cast<int8_t>(ranges[0].first));
 
-#if HWY_HAVE_SCALABLE==0
+#if !(HWY_TARGET & HWY_ALL_NEON)
         // highway doc: on x86 < and > are 1 instruction for signed ints (3 for unsigned)
         // and <= and >= are 2 instructions regardless of signed/unsigned
         // Set is 2 instructions, while potential load/store is 1
