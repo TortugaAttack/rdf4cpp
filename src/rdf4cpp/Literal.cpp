@@ -970,7 +970,9 @@ template<typename OpSelect>
 Literal Literal::numeric_binop_impl(OpSelect op_select, Literal const &other, storage::DynNodeStoragePtr node_storage) const {
     using namespace datatypes::registry;
 
-    if (this->null() || other.null() || this->is_fixed_not_numeric() || other.is_fixed_not_numeric()) {
+    assert(!this->null() && !other.null());
+
+    if (this->is_fixed_not_numeric() || other.is_fixed_not_numeric()) {
         return Literal{};
     }
 
@@ -1340,6 +1342,10 @@ bool Literal::is_string_like() const noexcept {
 }
 
 Literal Literal::add(Literal const &other, storage::DynNodeStoragePtr node_storage) const {
+    if (this->null() || other.null()) {
+        return Literal{};
+    }
+
     node_storage = select_node_storage(node_storage);
 
     // DayTimeDuration + DayTimeDuration
@@ -1417,6 +1423,10 @@ Literal &Literal::operator+=(const Literal &other) {
 }
 
 Literal Literal::sub(Literal const &other, storage::DynNodeStoragePtr node_storage) const {
+    if (this->null() || other.null()) {
+        return Literal{};
+    }
+
     node_storage = select_node_storage(node_storage);
 
     // DateTime(&Subclasses) - DateTime(&Subclasses)
@@ -1511,6 +1521,10 @@ Literal &Literal::operator-=(const Literal &other) {
 }
 
 Literal Literal::mul(Literal const &other, storage::DynNodeStoragePtr node_storage) const {
+    if (this->null() || other.null()) {
+        return Literal{};
+    }
+
     node_storage = select_node_storage(node_storage);
 
     // YearMonthDuration * double
@@ -1560,6 +1574,10 @@ Literal &Literal::operator*=(const Literal &other) {
 }
 
 Literal Literal::div(Literal const &other, storage::DynNodeStoragePtr node_storage) const {
+    if (this->null() || other.null()) {
+        return Literal{};
+    }
+
     node_storage = select_node_storage(node_storage);
 
     // YearMonthDuration / double
