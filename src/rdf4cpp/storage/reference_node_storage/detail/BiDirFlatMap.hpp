@@ -97,7 +97,11 @@ private:
      * Translates the given id into an index into forward_
      */
     [[nodiscard]] static constexpr size_type to_index(id_type const id) noexcept {
-        return static_cast<size_type>(id) - 1;
+        if constexpr (std::same_as<uint64_t, size_t>) {
+            return static_cast<size_type>(id) - 1;
+        } else {
+            return static_cast<size_type>(static_cast<uint64_t>(id)) - 1;
+        }
     }
 
     /**
