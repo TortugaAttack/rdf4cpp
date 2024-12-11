@@ -470,3 +470,19 @@ TEST_CASE("compound assignment operators") {
     curr += str;
     CHECK(curr.null());
 }
+
+TEST_CASE("null ops") {
+    auto const n = Literal::make_null();
+    auto const l = Literal::make_typed_from_value<datatypes::xsd::Float>(2.f);
+
+    CHECK((n + l).null());
+    CHECK((l + n).null());
+    CHECK((n - l).null());
+    CHECK((l - n).null());
+    CHECK((n * l).null());
+    CHECK((l * n).null());
+    CHECK((n / l).null());
+    CHECK((l / n).null());
+    CHECK((+n).null());
+    CHECK((-n).null());
+}
