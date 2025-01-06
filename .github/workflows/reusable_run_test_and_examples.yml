@@ -14,8 +14,6 @@ on:
         type: boolean
       with-sanitizer:
         type: boolean
-      with-Werror:
-        type: boolean
       with-AVX:
         type: boolean
     secrets:
@@ -31,7 +29,6 @@ jobs:
       compiler: ${{ inputs.compiler }}
       cmake-version: ${{ inputs.cmake-version }}
       build-shared-libs: false
-      with-Werror: ${{ inputs.with-Werror }}
       with-sanitizer: ${{ inputs.with-sanitizer }}
       with-AVX: ${{ inputs.with-AVX }}
 
@@ -42,7 +39,6 @@ jobs:
       compiler: ${{ inputs.compiler }}
       cmake-version: ${{ inputs.cmake-version }}
       build-shared-libs: true
-      with-Werror: ${{ inputs.with-Werror }}
       with-coverage: ${{ inputs.with-coverage }}
     secrets:
       coverall-token: ${{ secrets.coverall-token }}
