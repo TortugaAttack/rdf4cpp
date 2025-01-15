@@ -95,20 +95,20 @@ namespace rdf4cpp::util::char_matcher_detail::HWY_NAMESPACE {
         Foreach(d, reinterpret_cast<int8_t const *>(data.data()), data.size(), zero, [&](auto d, auto in_vec) HWY_ATTR {
             // if bit 7 is set, the char belongs to a unicode sequence
             // => std::nullopt
-            if (!AllTrue(d, HighestSetBitIndex(in_vec) < GET_SINGLE(unicode_bit_index))) {
+            if (!AllTrue(d, Lt(HighestSetBitIndex(in_vec), GET_SINGLE(unicode_bit_index)))) {
                 found_unicode = true;
                 return false;
             }
 
             // check if target is in one of the ranges
-            auto m = And(in_vec > GET_SINGLE(range_vectors[0].first), in_vec < GET_SINGLE(range_vectors[0].second));
+            auto m = And(Gt(in_vec, GET_SINGLE(range_vectors[0].first)), Lt(in_vec, GET_SINGLE(range_vectors[0].second)));
             for (size_t i = 1; i < rn; ++i) {
-                m = Or(m, And(in_vec > GET_SINGLE(range_vectors[i].first), in_vec < GET_SINGLE(range_vectors[i].second)));
+                m = Or(m, And(Gt(in_vec, GET_SINGLE(range_vectors[i].first)), Lt(in_vec, GET_SINGLE(range_vectors[i].second))));
             }
 
             // check the single compares
             for (size_t i = 0; i < sn - 1; ++i) {
-                m = Or(m, in_vec == GET_SINGLE(single_vectors[i]));
+                m = Or(m, Eq(in_vec, GET_SINGLE(single_vectors[i])));
             }
 
             r = r && AllTrue(d, m);
@@ -182,9 +182,9 @@ namespace rdf4cpp::util::char_matcher_detail::HWY_NAMESPACE {
 
         Foreach(d, reinterpret_cast<int8_t const *>(data.data()), data.size(), zero, [&](auto d, V in_vec) HWY_ATTR {
             // compare
-            auto m = in_vec == GET_SINGLE(match_vectors[0]);
+            auto m = Eq(in_vec, GET_SINGLE(match_vectors[0]));
             for (size_t i = 1; i < n-1; ++i) {
-                m = Or(m, in_vec == GET_SINGLE(match_vectors[i]));
+                m = Or(m, Eq(in_vec, GET_SINGLE(match_vectors[i])));
             }
 
             r = r || !AllFalse(d, m);
