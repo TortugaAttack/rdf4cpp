@@ -11,6 +11,7 @@ from conan.tools.files import load, copy, rmdir
 class Recipe(ConanFile):
     author = "https://github.com/rdf4cpp"
     url = "https://github.com/rdf4cpp/rdf4cpp"
+    license = "MIT"
     description = "rdf4cpp aims to be a stable, modern RDF library for C++."
     topics = "rdf", "semantic-web", "sparql", "knowledge-graphs", "C++20"
     settings = "os", "compiler", "build_type", "arch"
