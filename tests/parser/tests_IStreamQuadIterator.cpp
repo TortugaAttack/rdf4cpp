@@ -718,9 +718,25 @@ TEST_SUITE("IStreamQuadIterator") {
         // validate fix of https://gitlab.com/drobilla/serd/-/issues/32
         // previously this triggered an assertion
 
-        std::istringstream iss{"<htt"};
-        for (IStreamQuadIterator qit{iss}; qit != std::default_sentinel; ++qit) {
-            CHECK_EQ(qit->error().message, "unexpected end of file");
+        SUBCASE("iri") {
+            std::istringstream iss{"<htt"};
+            for (IStreamQuadIterator qit{iss}; qit != std::default_sentinel; ++qit) {
+                CHECK_FALSE(qit->has_value());
+            }
+        }
+
+        SUBCASE("literal") {
+            std::istringstream iss{"_:"};
+            for (IStreamQuadIterator qit{iss}; qit != std::default_sentinel; ++qit) {
+                CHECK_FALSE(qit->has_value());
+            }
+        }
+
+        SUBCASE("bnode") {
+            std::istringstream iss{"\"aaaa"};
+            for (IStreamQuadIterator qit{iss}; qit != std::default_sentinel; ++qit) {
+                CHECK_FALSE(qit->has_value());
+            }
         }
     }
 }
