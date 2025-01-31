@@ -725,14 +725,14 @@ TEST_SUITE("IStreamQuadIterator") {
             }
         }
 
-        SUBCASE("literal") {
+        SUBCASE("bnode") {
             std::istringstream iss{"_:"};
             for (IStreamQuadIterator qit{iss}; qit != std::default_sentinel; ++qit) {
                 CHECK_FALSE(qit->has_value());
             }
         }
 
-        SUBCASE("bnode") {
+        SUBCASE("literal") {
             std::istringstream iss{"\"aaaa"};
             for (IStreamQuadIterator qit{iss}; qit != std::default_sentinel; ++qit) {
                 CHECK_FALSE(qit->has_value());
