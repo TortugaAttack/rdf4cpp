@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.22)
-project(rdf4cpp VERSION 0.0.46)
+project(rdf4cpp VERSION 0.0.49)
 set(POBR_VERSION 3)  # Persisted Object Binary Representation
 
 include(cmake/boilerplate_init.cmake)
@@ -26,7 +26,7 @@ find_package(dice-template-library REQUIRED)
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/cmake/version.hpp.in ${CMAKE_CURRENT_SOURCE_DIR}/src/rdf4cpp/version.hpp)
 
-set(serd_rev 9b294a0899ad4ff10f19e9cdf03d3cf694f60ab9)
+set(serd_rev 6d0e41dbbab57d2b392131cf780ebc376d921caa)
 set(serd_source_files
         include/serd/serd.h
         src/attributes.h

@@ -91,7 +91,7 @@ TEST_SUITE("IStreamQuadIterator") {
 
         SUBCASE("strict") {
             std::istringstream iss{triples};
-            IStreamQuadIterator qit{iss, ParsingFlag::Strict};
+            IStreamQuadIterator qit{iss};
 
             CHECK_NE(qit, std::default_sentinel);
             CHECK_EQ(qit->value().subject(), IRI{"http://data.semanticweb.org/workshop/admire/2012/paper/12"});
@@ -121,7 +121,7 @@ TEST_SUITE("IStreamQuadIterator") {
 
         SUBCASE("non-strict") {
             std::istringstream iss{triples};
-            IStreamQuadIterator qit{iss};
+            IStreamQuadIterator qit{iss, ParsingFlag::Lax};
 
             CHECK_NE(qit, std::default_sentinel);
             CHECK_EQ(qit->value().subject(), IRI{"http://data.semanticweb.org/workshop/admire/2012/paper/12"});
@@ -712,5 +712,31 @@ TEST_SUITE("IStreamQuadIterator") {
             ++iter;
         }
 
+    }
+
+    TEST_CASE("EOF in the middle") {
+        // validate fix of https://gitlab.com/drobilla/serd/-/issues/32
+        // previously this triggered an assertion
+
+        SUBCASE("iri") {
+            std::istringstream iss{"<htt"};
+            for (IStreamQuadIterator qit{iss}; qit != std::default_sentinel; ++qit) {
+                CHECK_FALSE(qit->has_value());
+            }
+        }
+
+        SUBCASE("bnode") {
+            std::istringstream iss{"_:"};
+            for (IStreamQuadIterator qit{iss}; qit != std::default_sentinel; ++qit) {
+                CHECK_FALSE(qit->has_value());
+            }
+        }
+
+        SUBCASE("literal") {
+            std::istringstream iss{"\"aaaa"};
+            for (IStreamQuadIterator qit{iss}; qit != std::default_sentinel; ++qit) {
+                CHECK_FALSE(qit->has_value());
+            }
+        }
     }
 }

@@ -358,7 +358,7 @@ IStreamQuadIterator::Impl::Impl(void *stream,
         this->state_is_owned = true;
     }
 
-    serd_reader_set_strict(this->reader, flags.contains(ParsingFlag::Strict));
+    serd_reader_set_strict(this->reader, !flags.contains(ParsingFlag::Lax));
     serd_reader_set_error_sink(this->reader, &Impl::on_error, this);
     serd_reader_start_source_stream(this->reader, read, error, stream, nullptr, 4096);
 }

@@ -17,8 +17,6 @@ on:
         type: boolean
       with-sanitizer:
         type: boolean
-      with-Werror:
-        type: boolean
       with-AVX:
         type: boolean
     secrets:
@@ -86,7 +84,7 @@ jobs:
 
       - name: Cache conan data
         id: cache-conan
-        uses: actions/cache@v4.0.2
+        uses: actions/cache@v4
         with:
           path: ~/.conan2/p
           key: ${{ inputs.os }}-${{ inputs.compiler }}-conan2${{ fromJSON('["", "-coverage"]')[inputs.with-coverage] }}${{ fromJSON('["", "-sanitizer"]')[inputs.with-sanitizer] }}${{ fromJSON('["", "-avx"]')[inputs.with-avx] }}
@@ -106,9 +104,9 @@ jobs:
         env:
           CC: ${{ steps.install_cc.outputs.cc }}
           CXX: ${{ steps.install_cc.outputs.cxx }}
-          CXXFLAGS: -Wno-unused-command-line-argument -fuse-ld=mold ${{ fromJSON('["", "-fsanitize=undefined -fsanitize=address -fno-omit-frame-pointer -fno-optimize-sibling-calls"]')[inputs.with-sanitizer] }} ${{ fromJSON('["", "--coverage"]')[inputs.with-coverage] }} ${{ fromJSON('["", "-Werror"]')[inputs.with-Werror] }} ${{ fromJSON('["", "-march=native"]')[inputs.with-AVX] }}
+          CXXFLAGS: -Wno-unused-command-line-argument -fuse-ld=mold ${{ fromJSON('["", "-fsanitize=undefined -fsanitize=address -fno-omit-frame-pointer -fno-optimize-sibling-calls"]')[inputs.with-sanitizer] }} ${{ fromJSON('["", "--coverage"]')[inputs.with-coverage] }} ${{ fromJSON('["", "-march=native"]')[inputs.with-AVX] }}
         run: >
-          cmake -G Ninja -B build_dir -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTING=ON -DBUILD_EXAMPLES=ON -DCMAKE_PROJECT_TOP_LEVEL_INCLUDES=conan_provider.cmake
+          cmake -G Ninja -B build_dir -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTING=ON -DBUILD_EXAMPLES=ON -DCMAKE_PROJECT_TOP_LEVEL_INCLUDES=conan_provider.cmake -DCMAKE_COMPILE_WARNING_AS_ERROR=ON
           ${{ fromJSON('["", "-DBUILD_SHARED_LIBS=ON -DCMAKE_POSITION_INDEPENDENT_CODE=ON"]')[inputs.build-shared-libs] }}
 
       - name: Build Tests & Examples

@@ -24,5 +24,4 @@ jobs:
       cmake-version: 3.24.0
       with-coverage: false
       with-sanitizer: ${{ matrix.cppenv.compiler == 'clang-17' }}
-      with-Werror: ${{ matrix.cppenv.compiler == 'clang-17' || matrix.cppenv.compiler == 'gcc-13' }}
       with-AVX: ${{ matrix.cppenv.compiler == 'clang-17' }}
