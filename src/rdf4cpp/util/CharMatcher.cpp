@@ -61,6 +61,10 @@ namespace rdf4cpp::util::char_matcher_detail::HWY_NAMESPACE {
         // highway doc: on x86 < and > are 1 instruction for signed ints (3 for unsigned)
         // and <= and >= are 2 instructions regardless of signed/unsigned
         // Set is 2 instructions, while potential load/store is 1
+        //
+        // storing a vector directly is possible on x86
+        //
+        // => load vector once and store it inside an array
 
         using single_storage = V;
 #define GET_SINGLE(x) x
@@ -68,6 +72,10 @@ namespace rdf4cpp::util::char_matcher_detail::HWY_NAMESPACE {
 #else
         // highway doc: on arm neon <, >, <= and >= are 1 instruction for any int
         // Set is 1 instruction, while potential load/store is 1
+        //
+        // storing a vector directly is not possible on arm
+        //
+        // => store raw chars inside an array, load it when needed
 
         using single_storage = int8_t;
 #define GET_SINGLE(x) Set(d, x)
@@ -154,6 +162,10 @@ namespace rdf4cpp::util::char_matcher_detail::HWY_NAMESPACE {
         // highway doc: on x86 < and > are 1 instruction for signed ints (3 for unsigned)
         // and <= and >= are 2 instructions regardless of signed/unsigned
         // Set is 2 instructions, while potential load/store is 1
+        //
+        // storing a vector directly is possible on x86
+        //
+        // => load vector once and store it inside an array
 
         using single_storage = V;
 #define GET_SINGLE(x) x
@@ -161,6 +173,10 @@ namespace rdf4cpp::util::char_matcher_detail::HWY_NAMESPACE {
 #else
         // highway doc: on arm neon <, >, <= and >= are 1 instruction for any int
         // Set is 1 instruction, while potential load/store is 1
+        //
+        // storing a vector directly is not possible on arm
+        //
+        // => store raw chars inside an array, load it when needed
 
         using single_storage = int8_t;
 #define GET_SINGLE(x) Set(d, x)

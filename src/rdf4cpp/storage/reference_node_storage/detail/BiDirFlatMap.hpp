@@ -21,7 +21,7 @@ struct BiDirFlatMap {
     using id_type = Id;
     using mapped_type = Value;
     using view_type = View;
-    using size_type = size_t;
+    using size_type = uint64_t;
     using allocator_type = Allocator;
     using hasher = Hash;
     using key_equal = Equal;
@@ -97,11 +97,7 @@ private:
      * Translates the given id into an index into forward_
      */
     [[nodiscard]] static constexpr size_type to_index(id_type const id) noexcept {
-        if constexpr (std::same_as<uint64_t, size_t>) {
-            return static_cast<size_type>(id) - 1;
-        } else {
-            return static_cast<size_type>(static_cast<uint64_t>(id)) - 1;
-        }
+        return static_cast<size_type>(id) - 1;
     }
 
     /**
