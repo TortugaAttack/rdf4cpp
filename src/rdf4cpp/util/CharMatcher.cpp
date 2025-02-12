@@ -57,49 +57,74 @@ namespace rdf4cpp::util::char_matcher_detail::HWY_NAMESPACE {
         // => comparisons need to evaluate as true for the logic to work
         V const zero = Set(d, static_cast<int8_t>(ranges[0].first));
 
+#if !(HWY_TARGET & (HWY_ALL_NEON | HWY_ALL_SVE)) && !HWY_HAVE_SCALABLE
         // highway doc: on x86 < and > are 1 instruction for signed ints (3 for unsigned)
         // and <= and >= are 2 instructions regardless of signed/unsigned
+        // Set is 2 instructions, while potential load/store is 1
+        //
+        // storing a vector directly is possible on x86
+        //
+        // => load vector once and store it inside an array
+
+        using single_storage = V;
+#define GET_SINGLE(x) x
+#define LOAD_SINGLE(x) Set(d, x)
+#else
+        // highway doc: on arm neon <, >, <= and >= are 1 instruction for any int
+        // Set is 1 instruction, while potential load/store is 1
+        //
+        // storing a vector directly is not possible on arm
+        //
+        // => store raw chars inside an array, load it when needed
+
+        using single_storage = int8_t;
+#define GET_SINGLE(x) Set(d, x)
+#define LOAD_SINGLE(x) x
+#endif
 
         // set up ranges
-        std::array<std::pair<V, V>, rn> range_vectors;
+        std::array<std::pair<single_storage, single_storage>, rn> range_vectors;
         for (size_t i = 0; i < rn; ++i) {
             assert(ranges[i].first != '\0');
             assert(ranges[i].first < ranges[i].last);
-            range_vectors[i].first = Set(d, static_cast<int8_t>(ranges[i].first - 1));
-            range_vectors[i].second = Set(d, static_cast<int8_t>(ranges[i].last + 1));
+            range_vectors[i].first = LOAD_SINGLE(static_cast<int8_t>(ranges[i].first - 1));
+            range_vectors[i].second = LOAD_SINGLE(static_cast<int8_t>(ranges[i].last + 1));
         }
 
-        V const unicode_bit_index = Set(d, 7);
+        single_storage const unicode_bit_index = LOAD_SINGLE(7);
 
         // set up single compares
-        std::array<V, sn - 1> single_vectors{};
+        std::array<single_storage, sn - 1> single_vectors{};
         auto view = static_cast<std::string_view>(single);
         for (size_t i = 0; i < view.size(); ++i) {
-            single_vectors[i] = Set(d, static_cast<int8_t>(view[i]));
+            single_vectors[i] = LOAD_SINGLE(static_cast<int8_t>(view[i]));
         }
 
         Foreach(d, reinterpret_cast<int8_t const *>(data.data()), data.size(), zero, [&](auto d, auto in_vec) HWY_ATTR {
             // if bit 7 is set, the char belongs to a unicode sequence
             // => std::nullopt
-            if (!AllTrue(d, HighestSetBitIndex(in_vec) < unicode_bit_index)) {
+            if (!AllTrue(d, Lt(HighestSetBitIndex(in_vec), GET_SINGLE(unicode_bit_index)))) {
                 found_unicode = true;
                 return false;
             }
 
             // check if target is in one of the ranges
-            auto m = And(in_vec > range_vectors[0].first, in_vec < range_vectors[0].second);
+            auto m = And(Gt(in_vec, GET_SINGLE(range_vectors[0].first)), Lt(in_vec, GET_SINGLE(range_vectors[0].second)));
             for (size_t i = 1; i < rn; ++i) {
-                m = Or(m, And(in_vec > range_vectors[i].first, in_vec < range_vectors[i].second));
+                m = Or(m, And(Gt(in_vec, GET_SINGLE(range_vectors[i].first)), Lt(in_vec, GET_SINGLE(range_vectors[i].second))));
             }
 
             // check the single compares
             for (size_t i = 0; i < sn - 1; ++i) {
-                m = Or(m, in_vec == single_vectors[i]);
+                m = Or(m, Eq(in_vec, GET_SINGLE(single_vectors[i])));
             }
 
             r = r && AllTrue(d, m);
             return r;  // possible early return
         });
+
+#undef GET_SINGLE
+#undef LOAD_SINGLE
 
         if (found_unicode)
             return std::nullopt;
@@ -133,29 +158,57 @@ namespace rdf4cpp::util::char_matcher_detail::HWY_NAMESPACE {
         using V = Vec<D>;               //NOLINT vector type
         D const d;
 
+#if !(HWY_TARGET & (HWY_ALL_NEON | HWY_ALL_SVE)) && !HWY_HAVE_SCALABLE
+        // highway doc: on x86 < and > are 1 instruction for signed ints (3 for unsigned)
+        // and <= and >= are 2 instructions regardless of signed/unsigned
+        // Set is 2 instructions, while potential load/store is 1
+        //
+        // storing a vector directly is possible on x86
+        //
+        // => load vector once and store it inside an array
+
+        using single_storage = V;
+#define GET_SINGLE(x) x
+#define LOAD_SINGLE(x) Set(d, x)
+#else
+        // highway doc: on arm neon <, >, <= and >= are 1 instruction for any int
+        // Set is 1 instruction, while potential load/store is 1
+        //
+        // storing a vector directly is not possible on arm
+        //
+        // => store raw chars inside an array, load it when needed
+
+        using single_storage = int8_t;
+#define GET_SINGLE(x) Set(d, x)
+#define LOAD_SINGLE(x) x
+#endif
+
         // elements from this vector are used, if data is not a multiple of Lanes(d)
         // should not influence final result
         // => comparisons need to evaluate as false for the logic to work
         V const zero = Set(d, static_cast<int8_t>(0));
 
         // load comparison vectors
-        std::array<V, n-1> match_vectors;
+        std::array<single_storage, n-1> match_vectors;
         auto view = static_cast<std::string_view>(match);
         for (size_t i = 0; i < n-1; ++i) {
             assert(view[i] != '\0');
-            match_vectors[i] = Set(d, static_cast<int8_t>(view[i]));
+            match_vectors[i] = LOAD_SINGLE(static_cast<int8_t>(view[i]));
         }
 
-        Foreach(d, reinterpret_cast<int8_t const *>(data.data()), data.size(), zero, [&](auto d, auto in_vec) HWY_ATTR {
+        Foreach(d, reinterpret_cast<int8_t const *>(data.data()), data.size(), zero, [&](auto d, V in_vec) HWY_ATTR {
             // compare
-            auto m = in_vec == match_vectors[0];
+            auto m = Eq(in_vec, GET_SINGLE(match_vectors[0]));
             for (size_t i = 1; i < n-1; ++i) {
-                m = Or(m, in_vec == match_vectors[i]);
+                m = Or(m, Eq(in_vec, GET_SINGLE(match_vectors[i])));
             }
 
             r = r || !AllFalse(d, m);
             return !r;  // potential early return
         });
+
+#undef GET_SINGLE
+#undef LOAD_SINGLE
 
         return r;
     }

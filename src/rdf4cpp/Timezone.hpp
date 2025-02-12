@@ -506,32 +506,32 @@ struct dice::hash::dice_hash_overload<Policy, rdf4cpp::YearMonth> {
 };
 
 template<>
-struct std::formatter<rdf4cpp::Year> : std::formatter<string_view> {
+struct std::formatter<rdf4cpp::Year> : std::formatter<std::string_view> {
     inline auto format(rdf4cpp::Year const &p, format_context &ctx) const {
         return std::format_to(ctx.out(), "{:0{}}", static_cast<int64_t>(p), static_cast<int64_t>(p) < 0 ? 5 : 4);
     }
 };
 template<>
-struct std::formatter<rdf4cpp::YearMonthDay> : std::formatter<string_view> {
+struct std::formatter<rdf4cpp::YearMonthDay> : std::formatter<std::string_view> {
     inline auto format(rdf4cpp::YearMonthDay const &p, format_context &ctx) const {
         return std::format_to(ctx.out(), "{}-{:%m}-{:%d}", p.year(), p.month(), p.day());
     }
 };
 template<>
-struct std::formatter<rdf4cpp::YearMonth> : std::formatter<string_view> {
+struct std::formatter<rdf4cpp::YearMonth> : std::formatter<std::string_view> {
     inline auto format(rdf4cpp::YearMonth const &p, format_context &ctx) const {
         return std::format_to(ctx.out(), "{}-{:%m}", p.year(), p.month());
     }
 };
 template<>
-struct std::formatter<rdf4cpp::TimePoint> : std::formatter<string_view> {
+struct std::formatter<rdf4cpp::TimePoint> : std::formatter<std::string_view> {
     inline auto format(rdf4cpp::TimePoint const &p, format_context &ctx) const {
         auto [date, time] = rdf4cpp::util::deconstruct_timepoint(p);
         return std::format_to(ctx.out(), "{}T{:%H:%M:%S}", date, std::chrono::hh_mm_ss{std::chrono::duration_cast<std::chrono::nanoseconds>(time)});
     }
 };
 template<>
-struct std::formatter<rdf4cpp::ZonedTime> : std::formatter<string_view> {
+struct std::formatter<rdf4cpp::ZonedTime> : std::formatter<std::string_view> {
     inline auto format(rdf4cpp::ZonedTime const &p, format_context &ctx) const {
         return std::format_to(ctx.out(), "{}{}", p.get_local_time(), p.get_time_zone().to_canonical_string());
     }

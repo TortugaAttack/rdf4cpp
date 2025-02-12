@@ -21,7 +21,7 @@ struct BiDirFlatMap {
     using id_type = Id;
     using mapped_type = Value;
     using view_type = View;
-    using size_type = size_t;
+    using size_type = uint64_t;
     using allocator_type = Allocator;
     using hasher = Hash;
     using key_equal = Equal;
