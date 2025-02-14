@@ -72,51 +72,51 @@ bool serialize(Quad const &q, writer::BufWriterParts writer, writer::Serializati
         return q.serialize_trig(*state, writer);
 }
 
+static std::array const quads{
+    Quad{IRI::default_graph(), IRI::make("http://ex/sub"), IRI::make("http://www.w3.org/1999/02/22-rdf-syntax-ns#type"), Literal::make_typed_from_value<datatypes::xsd::Int>(7)},
+    Quad{IRI::make("http://ex/graph"), IRI::make("http://ex/sub"), IRI::make("http://www.w3.org/1999/02/22-rdf-syntax-ns#type"), IRI::make("http://ex/obj")},
+    Quad{IRI::make("http://ex/graph2"), IRI::make("http://ex/sub"), IRI::make("http://www.w3.org/1999/02/22-rdf-syntax-ns#type"), Literal::make_typed_from_value<datatypes::xsd::Int>(5)}
+};
+
 template<OutputFormat F>
 std::string write_basic_data(){
     std::string buf;
     writer::StringWriter ser{buf};
     writer::SerializationState st{};
-    if constexpr (format_has_prefix<F>)
-        if (!writer::SerializationState::begin(ser))
+
+    if constexpr (format_has_prefix<F>) {
+        if (!writer::SerializationState::begin(ser)) {
             FAIL("state failed");
-    Quad q{IRI::make("http://ex/graph"), IRI::make("http://ex/sub"), IRI::make("http://www.w3.org/1999/02/22-rdf-syntax-ns#type"), IRI::make("http://ex/obj")};
-    if (!serialize<F>(q, ser, &st))
-        FAIL("write failed");
-    q.graph() = IRI::make("http://ex/graph2");
-    q.object() = Literal::make_typed_from_value<datatypes::xsd::Int>(5);
-    if (!serialize<F>(q, ser, &st))
-        FAIL("write failed");
-    q.graph() = IRI::default_graph();
-    q.object() = Literal::make_typed_from_value<datatypes::xsd::Int>(7);
-    if (!serialize<F>(q, ser, &st))
-        FAIL("write failed");
-    if constexpr (format_has_prefix<F>)
-        if (!st.flush(ser))
+        }
+    }
+
+    for (auto const &q : quads) {
+        if (!serialize<F>(q, ser, &st)) {
+            FAIL("write failed");
+        }
+    }
+
+    if constexpr (format_has_prefix<F>) {
+        if (!st.flush(ser)) {
             FAIL("flush failed");
+        }
+    }
+
     ser.finalize();
     return buf;
 }
 Graph get_graph(storage::DynNodeStoragePtr node_storage) {
     Graph gd{node_storage};
-    Statement q{IRI::make("http://ex/sub"), IRI::make("http://www.w3.org/1999/02/22-rdf-syntax-ns#type"), IRI::make("http://ex/obj")};
-    gd.add(q);
-    q.object() = Literal::make_typed_from_value<datatypes::xsd::Int>(5);
-    gd.add(q);
-    q.object() = Literal::make_typed_from_value<datatypes::xsd::Int>(7);
-    gd.add(q);
+    for (auto const &q : quads) {
+        gd.add(q.without_graph());
+    }
     return gd;
 }
 Dataset get_dataset(storage::DynNodeStoragePtr node_storage) {
     Dataset gd{node_storage};
-    Quad q{IRI::make("http://ex/graph"), IRI::make("http://ex/sub"), IRI::make("http://www.w3.org/1999/02/22-rdf-syntax-ns#type"), IRI::make("http://ex/obj")};
-    gd.add(q);
-    q.graph() = IRI::make("http://ex/graph2");
-    q.object() = Literal::make_typed_from_value<datatypes::xsd::Int>(5);
-    gd.add(q);
-    q.graph() = IRI::default_graph();
-    q.object() = Literal::make_typed_from_value<datatypes::xsd::Int>(7);
-    gd.add(q);
+    for (auto const &q : quads) {
+        gd.add(q);
+    }
     return gd;
 }
 
@@ -128,109 +128,137 @@ void check_basic_data(const std::string &i) {
     CHECK(qit != std::default_sentinel);
     CHECK(qit->value().subject() == IRI::make("http://ex/sub"));
     CHECK(qit->value().predicate() == IRI::make("http://www.w3.org/1999/02/22-rdf-syntax-ns#type"));
-    CHECK(qit->value().object() == IRI::make("http://ex/obj"));
-    if constexpr (HasGraph)
-        CHECK(qit->value().graph() == IRI::make("http://ex/graph"));
-    else
+    CHECK(qit->value().object() == Literal::make_typed_from_value<datatypes::xsd::Int>(7));
+    if constexpr (HasGraph) {
         CHECK(qit->value().graph() == IRI::default_graph());
+    } else {
+        CHECK(qit->value().graph() == IRI::default_graph());
+    }
+
+    ++qit;
+    CHECK(qit != std::default_sentinel);
+    CHECK(qit->value().subject() == IRI::make("http://ex/sub"));
+    CHECK(qit->value().predicate() == IRI::make("http://www.w3.org/1999/02/22-rdf-syntax-ns#type"));
+    CHECK(qit->value().object() == IRI::make("http://ex/obj"));
+    if constexpr (HasGraph) {
+        CHECK(qit->value().graph() == IRI::make("http://ex/graph"));
+    } else {
+        CHECK(qit->value().graph() == IRI::default_graph());
+    }
+
     ++qit;
     CHECK(qit != std::default_sentinel);
     CHECK(qit->value().subject() == IRI::make("http://ex/sub"));
     CHECK(qit->value().predicate() == IRI::make("http://www.w3.org/1999/02/22-rdf-syntax-ns#type"));
     CHECK(qit->value().object() == Literal::make_typed_from_value<datatypes::xsd::Int>(5));
-    if constexpr (HasGraph)
+    if constexpr (HasGraph) {
         CHECK(qit->value().graph() == IRI::make("http://ex/graph2"));
-    else
+    } else {
         CHECK(qit->value().graph() == IRI::default_graph());
-    ++qit;
-    CHECK(qit != std::default_sentinel);
-    CHECK(qit->value().subject() == IRI::make("http://ex/sub"));
-    CHECK(qit->value().predicate() == IRI::make("http://www.w3.org/1999/02/22-rdf-syntax-ns#type"));
-    CHECK(qit->value().object() == Literal::make_typed_from_value<datatypes::xsd::Int>(7));
-    if constexpr (HasGraph)
-        CHECK(qit->value().graph() == IRI::default_graph());
-    else
-        CHECK(qit->value().graph() == IRI::default_graph());
+    }
+
     ++qit;
     CHECK(qit == std::default_sentinel);
 }
 
 TEST_CASE("basic ntriple") {
-    const std::string d = write_basic_data<OutputFormat::NTriples>();
-    std::string const expected_1 = "<http://ex/sub> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://ex/obj> .\n"
-                             "<http://ex/sub> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> \"5\"^^<http://www.w3.org/2001/XMLSchema#int> .\n"
-                             "<http://ex/sub> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> \"7\"^^<http://www.w3.org/2001/XMLSchema#int> .\n";
-    std::string const expected_2 = "<http://ex/sub> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://ex/obj> .\n"
-                             "<http://ex/sub> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> \"7\"^^<http://www.w3.org/2001/XMLSchema#int> .\n"
-                             "<http://ex/sub> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> \"5\"^^<http://www.w3.org/2001/XMLSchema#int> .\n";
-    // use the OR clause to deal with different orderings
-    auto const result_1 = d == expected_1 || d == expected_2;
-    CHECK(result_1);
+    std::string const d = write_basic_data<OutputFormat::NTriples>();
+    check_basic_data<false, parser::ParsingFlag::NTriples>(d);
+
+    CHECK_EQ(d,
+             "<http://ex/sub> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> \"7\"^^<http://www.w3.org/2001/XMLSchema#int> .\n"
+             "<http://ex/sub> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://ex/obj> .\n"
+             "<http://ex/sub> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> \"5\"^^<http://www.w3.org/2001/XMLSchema#int> .\n");
 
     auto const res = writer::StringWriter::oneshot([](auto &w) noexcept {
         storage::reference_node_storage::UnsyncReferenceNodeStorage ns{};
         return get_graph(ns).serialize(w);
     });
-    // use the OR clause to deal with different orderings
-    auto const result_2 = res == expected_1 || res == expected_2;
-    CHECK(result_2);
 
-    check_basic_data<false, parser::ParsingFlag::NTriples>(d);
+    // reordered because graph is unordered_map
+    CHECK_EQ(res,
+             "<http://ex/sub> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://ex/obj> .\n"
+             "<http://ex/sub> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> \"5\"^^<http://www.w3.org/2001/XMLSchema#int> .\n"
+             "<http://ex/sub> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> \"7\"^^<http://www.w3.org/2001/XMLSchema#int> .\n");
 }
 
 TEST_CASE("basic nquad") {
-    const std::string d = write_basic_data<OutputFormat::NQuads>();
-    CHECK(d == "<http://ex/sub> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://ex/obj> <http://ex/graph> .\n"
-               "<http://ex/sub> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> \"5\"^^<http://www.w3.org/2001/XMLSchema#int> <http://ex/graph2> .\n"
-               "<http://ex/sub> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> \"7\"^^<http://www.w3.org/2001/XMLSchema#int> .\n");
+    std::string const d = write_basic_data<OutputFormat::NQuads>();
+    check_basic_data<true, parser::ParsingFlag::NQuads>(d);
+
+    CHECK_EQ(d,
+             "<http://ex/sub> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> \"7\"^^<http://www.w3.org/2001/XMLSchema#int> .\n"
+             "<http://ex/sub> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://ex/obj> <http://ex/graph> .\n"
+             "<http://ex/sub> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> \"5\"^^<http://www.w3.org/2001/XMLSchema#int> <http://ex/graph2> .\n");
 
     auto const res = writer::StringWriter::oneshot([](auto &w) noexcept {
         storage::reference_node_storage::UnsyncReferenceNodeStorage ns{};
         return get_dataset(ns).serialize(w);
     });
 
-    CHECK_EQ(res, d);
-    check_basic_data<true, parser::ParsingFlag::NQuads>(d);
+    // reordered because dataset is unordered_map
+    CHECK_EQ(res,
+             "<http://ex/sub> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> \"5\"^^<http://www.w3.org/2001/XMLSchema#int> <http://ex/graph2> .\n"
+             "<http://ex/sub> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://ex/obj> <http://ex/graph> .\n"
+             "<http://ex/sub> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> \"7\"^^<http://www.w3.org/2001/XMLSchema#int> .\n");
 }
 
 TEST_CASE("basic turtle") {
-    const std::string d = write_basic_data<OutputFormat::Turtle>();
-    std::string const expected_1 = "@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .\n"
-                                   "@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .\n"
-                                   "<http://ex/sub> a <http://ex/obj> ,\n\"5\"^^xsd:int ,\n\"7\"^^xsd:int .\n";
+    std::string const d = write_basic_data<OutputFormat::Turtle>();
+    check_basic_data<false, parser::ParsingFlag::Turtle>(d);
 
-    std::string const expected_2 = "@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .\n"
-                                   "@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .\n"
-                                   "<http://ex/sub> a <http://ex/obj> ,\n\"7\"^^xsd:int ,\n\"5\"^^xsd:int .\n";
-    // use the OR clause to deal with different orderings
-    auto const result_1 = d == expected_1 || d == expected_2;
-    CHECK(result_1);
+    CHECK_EQ(d,
+             "@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .\n"
+             "@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .\n"
+             "<http://ex/sub> a \"7\"^^xsd:int ,\n"
+             "<http://ex/obj> ,\n"
+             "\"5\"^^xsd:int .\n");
 
     auto const res = writer::StringWriter::oneshot([](auto &w) noexcept {
         storage::reference_node_storage::UnsyncReferenceNodeStorage ns{};
         return get_graph(ns).serialize_turtle(w);
     });
-    // use the OR clause to deal with different orderings
-    auto const result_2 = res == expected_1 || res == expected_2;
-    CHECK(result_2);
 
-    check_basic_data<false, parser::ParsingFlag::Turtle>(d);
+    // reordered because graph is unordered_map
+    CHECK_EQ(res,
+             "@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .\n"
+             "@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .\n"
+             "<http://ex/sub> a <http://ex/obj> ,\n"
+             "\"5\"^^xsd:int ,\n"
+             "\"7\"^^xsd:int .\n");
 }
 
 TEST_CASE("basic trig") {
     const std::string d = write_basic_data<OutputFormat::TriG>();
-    CHECK(d == "@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .\n"
-               "@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .\n"
-               "<http://ex/graph> {\n<http://ex/sub> a <http://ex/obj> .\n}\n<http://ex/graph2> {\n<http://ex/sub> a \"5\"^^xsd:int .\n}\n"
-               "<http://ex/sub> a \"7\"^^xsd:int .\n");
+    check_basic_data<true, parser::ParsingFlag::TriG>(d);
+
+    CHECK_EQ(d,
+             "@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .\n"
+             "@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .\n"
+             "<http://ex/sub> a \"7\"^^xsd:int .\n"
+             "<http://ex/graph> {\n"
+             "<http://ex/sub> a <http://ex/obj> .\n"
+             "}\n"
+             "<http://ex/graph2> {\n"
+             "<http://ex/sub> a \"5\"^^xsd:int .\n"
+             "}\n");
 
     auto const res = writer::StringWriter::oneshot([](auto &w) noexcept {
         storage::reference_node_storage::UnsyncReferenceNodeStorage ns{};
         return get_dataset(ns).serialize_trig(w);
     });
 
-    CHECK_EQ(res, d);
-    check_basic_data<true, parser::ParsingFlag::TriG>(d);
+    // reordered because dataset is unordered_map
+    CHECK_EQ(res,
+             "@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .\n"
+             "@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .\n"
+             "<http://ex/graph2> {\n"
+             "<http://ex/sub> a \"5\"^^xsd:int .\n"
+             "}\n"
+             "<http://ex/graph> {\n"
+             "<http://ex/sub> a <http://ex/obj> .\n"
+             "}\n"
+             "<http://ex/sub> a \"7\"^^xsd:int .\n");
 }
 
 template<OutputFormat F>

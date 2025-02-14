@@ -90,7 +90,6 @@ private:
      */
     [[nodiscard]] bool is_fixed_not_numeric() const noexcept;
 
-
     /**
      * @return if this datatype is either xsd:string or rdf:langString
      */
@@ -934,6 +933,7 @@ public:
     bool is_iri() const noexcept = delete;
 
     [[nodiscard]] bool is_numeric() const noexcept;
+    [[nodiscard]] bool is_chrono() const noexcept;
 
     /**
      * The literal comparison function for SPARQL filters (FILTER).

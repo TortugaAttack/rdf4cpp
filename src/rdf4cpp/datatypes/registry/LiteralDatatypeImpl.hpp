@@ -304,6 +304,14 @@ struct NumericStub {
 };
 
 /**
+ * Marker to tell rdf4cpp that this type is a time or date related type
+ */
+template<util::ConstexprString type_iri>
+struct Chrono {
+    using is_chrono = void;
+};
+
+/**
  * The capability to be used in boolean contexts.
  */
 template<util::ConstexprString type_iri>

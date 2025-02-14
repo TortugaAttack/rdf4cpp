@@ -80,6 +80,14 @@ concept NumericStub = requires {
                       };
 
 /**
+ * A chrono type
+ */
+template<typename LiteralDatatypeImpl>
+concept Chrono = requires {
+                     typename LiteralDatatypeImpl::is_chrono;
+                 };
+
+/**
  * A LiteralDatatype that is numeric but does not itself have an impl for any numeric op
  * it instead names another NumericImplLiteralDatatype that the operations should be delegated to.
  * This property is also referred to as being "stub-numeric".
@@ -92,6 +100,9 @@ concept NumericStubLiteralDatatype = LiteralDatatype<LiteralDatatypeImpl> && Num
  */
 template<typename LiteralDatatypeImpl>
 concept NumericLiteralDatatype = LiteralDatatype<LiteralDatatypeImpl> && (NumericImpl<LiteralDatatypeImpl> || NumericStub<LiteralDatatypeImpl>);
+
+template<typename LiteralDatatypeImpl>
+concept ChronoLiteralDatatype = LiteralDatatype<LiteralDatatypeImpl> && Chrono<LiteralDatatypeImpl>;
 
 template<typename LiteralDatatypeImpl>
 concept LogicalLiteralDatatype = LiteralDatatype<LiteralDatatypeImpl> && requires(typename LiteralDatatypeImpl::cpp_type const &value) {

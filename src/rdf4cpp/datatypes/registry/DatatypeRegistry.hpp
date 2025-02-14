@@ -102,6 +102,10 @@ struct DatatypeRegistry {
         }
     };
 
+    struct ChronoOps {
+        // empty, just a marker
+    };
+
     struct InliningOps {
         try_into_inlined_fptr_t try_into_inlined_fptr;
         from_inlined_fptr_t from_inlined_fptr;
@@ -116,6 +120,7 @@ struct DatatypeRegistry {
         ebv_fptr_t ebv_fptr; // convert to effective boolean value
 
         std::optional<NumericOps> numeric_ops;
+        std::optional<ChronoOps> chrono_ops;
         std::optional<InliningOps> inlining_ops;
 
         compare_fptr_t compare_fptr;
@@ -130,6 +135,7 @@ struct DatatypeRegistry {
                     .serialize_simplified_string_fptr = nullptr,
                     .ebv_fptr = nullptr,
                     .numeric_ops = std::nullopt,
+                    .chrono_ops = std::nullopt,
                     .inlining_ops = std::nullopt,
                     .compare_fptr = nullptr,
                     .conversion_table = RuntimeConversionTable::empty()};
@@ -143,6 +149,7 @@ struct DatatypeRegistry {
                     .serialize_simplified_string_fptr = nullptr,
                     .ebv_fptr = nullptr,
                     .numeric_ops = std::nullopt,
+                    .chrono_ops = std::nullopt,
                     .inlining_ops = std::nullopt,
                     .compare_fptr = nullptr,
                     .conversion_table = RuntimeConversionTable::empty()};
@@ -261,6 +268,15 @@ public:
      * @return if available a pointer to a structure containing function pointers for all numeric ops; otherwise a null pointer
      */
     [[nodiscard]] static NumericOps const *get_numerical_ops(DatatypeIDView datatype_id) noexcept;
+
+    /**
+     * Try to get the chrono ops for a datatype.
+     * Returns nullptr if the datatype is not chrono, or does not exist.
+     *
+     * @param datatype_id datatype id for the corresponding datatype
+     * @return if available a pointer to a structure containing function pointers for all chrono ops; otherwise a null pointer
+     */
+    [[nodiscard]] static ChronoOps const *get_chrono_ops(DatatypeIDView datatype_id) noexcept;
 
     /**
      * Try to get the conversion function that converts a value of a datatype to it's effective boolean value.
@@ -526,6 +542,14 @@ inline void DatatypeRegistry::add() noexcept {
         }
     }();
 
+    auto const chrono_ops = []() -> std::optional<ChronoOps> {
+        if constexpr (datatypes::Chrono<LiteralDatatype_t>) {
+            return ChronoOps{};
+        } else {
+            return std::nullopt;
+        }
+    }();
+
     auto const ebv_fptr = []() -> ebv_fptr_t {
         if constexpr (datatypes::LogicalLiteralDatatype<LiteralDatatype_t>) {
             return [](std::any const &operand) noexcept -> bool {
@@ -571,6 +595,7 @@ inline void DatatypeRegistry::add() noexcept {
             },
             .ebv_fptr = ebv_fptr,
             .numeric_ops = num_ops,
+            .chrono_ops = chrono_ops,
             .inlining_ops = inlining_ops,
             .compare_fptr = compare_fptr,
             .conversion_table = RuntimeConversionTable::from_concrete<conversion_table_t>()};

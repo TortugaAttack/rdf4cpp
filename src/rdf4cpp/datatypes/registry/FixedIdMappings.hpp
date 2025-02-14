@@ -11,6 +11,7 @@
 namespace rdf4cpp::datatypes::registry {
 
 using storage::identifier::LiteralType;
+using storage::identifier::LiteralTypeTag;
 
 inline constexpr util::ConstexprString default_graph_iri{""};
 inline constexpr util::ConstexprString rdf_type{"http://www.w3.org/1999/02/22-rdf-syntax-ns#type"};
@@ -62,46 +63,45 @@ using ReservedDatatypeIdEntry = std::pair<std::string_view, LiteralType>;
  * TODO fix issue https://github.com/rdf4cpp/rdf4cpp/issues/243
  */
 inline constexpr util::StaticFlatMap reserved_datatype_ids{
-        // ReservedDatatypeIdEntry{reserved for dynamic types, LiteralType::from_parts(false, 0)},
-        ReservedDatatypeIdEntry{default_graph_iri, LiteralType::from_parts(false, 1)},
-        ReservedDatatypeIdEntry{xsd_string,        LiteralType::from_parts(false, 2)},
-        ReservedDatatypeIdEntry{rdf_lang_string,   LiteralType::from_parts(false, 3)},
-        ReservedDatatypeIdEntry{xsd_boolean,       LiteralType::from_parts(false, 4)},
-        ReservedDatatypeIdEntry{xsd_base64_binary, LiteralType::from_parts(false, 5)},
-        ReservedDatatypeIdEntry{xsd_hex_binary,    LiteralType::from_parts(false, 6)},
+        // ReservedDatatypeIdEntry{reserved for dynamic types, LiteralType::from_parts(LiteralTypeTag::Default, 0)},
+        ReservedDatatypeIdEntry{default_graph_iri, LiteralType::from_parts(LiteralTypeTag::Default, 1)},
+        ReservedDatatypeIdEntry{rdf_type,  LiteralType::from_parts(LiteralTypeTag::Default, 2)},
+        ReservedDatatypeIdEntry{xsd_string,        LiteralType::from_parts(LiteralTypeTag::Default, 3)},
+        ReservedDatatypeIdEntry{rdf_lang_string,   LiteralType::from_parts(LiteralTypeTag::Default, 4)},
+        ReservedDatatypeIdEntry{xsd_boolean,       LiteralType::from_parts(LiteralTypeTag::Default, 5)},
+        ReservedDatatypeIdEntry{xsd_base64_binary, LiteralType::from_parts(LiteralTypeTag::Default, 6)},
+        ReservedDatatypeIdEntry{xsd_hex_binary,    LiteralType::from_parts(LiteralTypeTag::Default, 7)},
 
-        ReservedDatatypeIdEntry{xsd_date,               LiteralType::from_parts(false, 7)},
-        ReservedDatatypeIdEntry{xsd_time,               LiteralType::from_parts(false, 8)},
-        ReservedDatatypeIdEntry{xsd_dateTime,           LiteralType::from_parts(false, 9)},
-        ReservedDatatypeIdEntry{xsd_dateTimeStamp,      LiteralType::from_parts(false, 10)},
-        ReservedDatatypeIdEntry{xsd_gYear,              LiteralType::from_parts(false, 11)},
-        ReservedDatatypeIdEntry{xsd_gMonth,             LiteralType::from_parts(false, 12)},
-        ReservedDatatypeIdEntry{xsd_gDay,               LiteralType::from_parts(false, 13)},
-        ReservedDatatypeIdEntry{xsd_gYearMonth,         LiteralType::from_parts(false, 14)},
-        ReservedDatatypeIdEntry{xsd_gMonthDay,          LiteralType::from_parts(false, 15)},
-        ReservedDatatypeIdEntry{xsd_duration,           LiteralType::from_parts(false, 16)},
-        ReservedDatatypeIdEntry{xsd_dayTimeDuration,    LiteralType::from_parts(false, 17)},
-        ReservedDatatypeIdEntry{xsd_yearMonthDuration,  LiteralType::from_parts(false, 18)},
+        ReservedDatatypeIdEntry{xsd_date,               LiteralType::from_parts(LiteralTypeTag::Chrono, 0)},
+        ReservedDatatypeIdEntry{xsd_time,               LiteralType::from_parts(LiteralTypeTag::Chrono, 1)},
+        ReservedDatatypeIdEntry{xsd_dateTime,           LiteralType::from_parts(LiteralTypeTag::Chrono, 2)},
+        ReservedDatatypeIdEntry{xsd_dateTimeStamp,      LiteralType::from_parts(LiteralTypeTag::Chrono, 3)},
+        ReservedDatatypeIdEntry{xsd_gYear,              LiteralType::from_parts(LiteralTypeTag::Chrono, 4)},
+        ReservedDatatypeIdEntry{xsd_gMonth,             LiteralType::from_parts(LiteralTypeTag::Chrono, 5)},
+        ReservedDatatypeIdEntry{xsd_gDay,               LiteralType::from_parts(LiteralTypeTag::Chrono, 6)},
+        ReservedDatatypeIdEntry{xsd_gYearMonth,         LiteralType::from_parts(LiteralTypeTag::Chrono, 7)},
+        ReservedDatatypeIdEntry{xsd_gMonthDay,          LiteralType::from_parts(LiteralTypeTag::Chrono, 9)},
+        ReservedDatatypeIdEntry{xsd_duration,           LiteralType::from_parts(LiteralTypeTag::Chrono, 10)},
+        ReservedDatatypeIdEntry{xsd_dayTimeDuration,    LiteralType::from_parts(LiteralTypeTag::Chrono, 11)},
+        ReservedDatatypeIdEntry{xsd_yearMonthDuration,  LiteralType::from_parts(LiteralTypeTag::Chrono, 12)},
 
-        ReservedDatatypeIdEntry{rdf_type,  LiteralType::from_parts(false, 19)},
+        ReservedDatatypeIdEntry{xsd_float,   LiteralType::from_parts(LiteralTypeTag::Numeric, 0)},
+        ReservedDatatypeIdEntry{xsd_double,  LiteralType::from_parts(LiteralTypeTag::Numeric, 1)},
+        ReservedDatatypeIdEntry{xsd_decimal, LiteralType::from_parts(LiteralTypeTag::Numeric, 2)},
 
-        ReservedDatatypeIdEntry{xsd_float,   LiteralType::from_parts(true, 0)},
-        ReservedDatatypeIdEntry{xsd_double,  LiteralType::from_parts(true, 1)},
-        ReservedDatatypeIdEntry{xsd_decimal, LiteralType::from_parts(true, 2)},
-
-        ReservedDatatypeIdEntry{xsd_integer,              LiteralType::from_parts(true, 3)},
-        ReservedDatatypeIdEntry{xsd_non_positive_integer, LiteralType::from_parts(true, 4)},
-        ReservedDatatypeIdEntry{xsd_long,                 LiteralType::from_parts(true, 5)},
-        ReservedDatatypeIdEntry{xsd_non_negative_integer, LiteralType::from_parts(true, 6)},
-        ReservedDatatypeIdEntry{xsd_negative_integer,     LiteralType::from_parts(true, 7)},
-        ReservedDatatypeIdEntry{xsd_int,                  LiteralType::from_parts(true, 8)},
-        ReservedDatatypeIdEntry{xsd_unsigned_long,        LiteralType::from_parts(true, 9)},
-        ReservedDatatypeIdEntry{xsd_positive_integer,     LiteralType::from_parts(true, 10)},
-        ReservedDatatypeIdEntry{xsd_short,                LiteralType::from_parts(true, 11)},
-        ReservedDatatypeIdEntry{xsd_unsigned_int,         LiteralType::from_parts(true, 12)},
-        ReservedDatatypeIdEntry{xsd_byte,                 LiteralType::from_parts(true, 13)},
-        ReservedDatatypeIdEntry{xsd_unsigned_short,       LiteralType::from_parts(true, 14)},
-        ReservedDatatypeIdEntry{xsd_unsigned_byte,        LiteralType::from_parts(true, 15)}
+        ReservedDatatypeIdEntry{xsd_integer,              LiteralType::from_parts(LiteralTypeTag::Numeric, 3)},
+        ReservedDatatypeIdEntry{xsd_non_positive_integer, LiteralType::from_parts(LiteralTypeTag::Numeric, 4)},
+        ReservedDatatypeIdEntry{xsd_long,                 LiteralType::from_parts(LiteralTypeTag::Numeric, 5)},
+        ReservedDatatypeIdEntry{xsd_non_negative_integer, LiteralType::from_parts(LiteralTypeTag::Numeric, 6)},
+        ReservedDatatypeIdEntry{xsd_negative_integer,     LiteralType::from_parts(LiteralTypeTag::Numeric, 7)},
+        ReservedDatatypeIdEntry{xsd_int,                  LiteralType::from_parts(LiteralTypeTag::Numeric, 8)},
+        ReservedDatatypeIdEntry{xsd_unsigned_long,        LiteralType::from_parts(LiteralTypeTag::Numeric, 9)},
+        ReservedDatatypeIdEntry{xsd_positive_integer,     LiteralType::from_parts(LiteralTypeTag::Numeric, 10)},
+        ReservedDatatypeIdEntry{xsd_short,                LiteralType::from_parts(LiteralTypeTag::Numeric, 11)},
+        ReservedDatatypeIdEntry{xsd_unsigned_int,         LiteralType::from_parts(LiteralTypeTag::Numeric, 12)},
+        ReservedDatatypeIdEntry{xsd_byte,                 LiteralType::from_parts(LiteralTypeTag::Numeric, 13)},
+        ReservedDatatypeIdEntry{xsd_unsigned_short,       LiteralType::from_parts(LiteralTypeTag::Numeric, 14)},
+        ReservedDatatypeIdEntry{xsd_unsigned_byte,        LiteralType::from_parts(LiteralTypeTag::Numeric, 15)}
 };
 
 /**
