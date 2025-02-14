@@ -72,11 +72,12 @@ bool serialize(Quad const &q, writer::BufWriterParts writer, writer::Serializati
         return q.serialize_trig(*state, writer);
 }
 
-static std::array const quads{
-    Quad{IRI::default_graph(), IRI::make("http://ex/sub"), IRI::make("http://www.w3.org/1999/02/22-rdf-syntax-ns#type"), Literal::make_typed_from_value<datatypes::xsd::Int>(7)},
-    Quad{IRI::make("http://ex/graph"), IRI::make("http://ex/sub"), IRI::make("http://www.w3.org/1999/02/22-rdf-syntax-ns#type"), IRI::make("http://ex/obj")},
-    Quad{IRI::make("http://ex/graph2"), IRI::make("http://ex/sub"), IRI::make("http://www.w3.org/1999/02/22-rdf-syntax-ns#type"), Literal::make_typed_from_value<datatypes::xsd::Int>(5)}
-};
+[[nodiscard]] std::array<Quad, 3> quads(storage::DynNodeStoragePtr storage = storage::default_node_storage) {
+    return {
+            Quad{IRI::default_graph(storage), IRI::make("http://ex/sub", storage), IRI::make("http://www.w3.org/1999/02/22-rdf-syntax-ns#type", storage), Literal::make_typed_from_value<datatypes::xsd::Int>(7, storage)},
+            Quad{IRI::make("http://ex/graph", storage), IRI::make("http://ex/sub", storage), IRI::make("http://www.w3.org/1999/02/22-rdf-syntax-ns#type", storage), IRI::make("http://ex/obj")},
+            Quad{IRI::make("http://ex/graph2", storage), IRI::make("http://ex/sub", storage), IRI::make("http://www.w3.org/1999/02/22-rdf-syntax-ns#type", storage), Literal::make_typed_from_value<datatypes::xsd::Int>(5, storage)}};
+}
 
 template<OutputFormat F>
 std::string write_basic_data(){
@@ -90,7 +91,7 @@ std::string write_basic_data(){
         }
     }
 
-    for (auto const &q : quads) {
+    for (auto const &q : quads()) {
         if (!serialize<F>(q, ser, &st)) {
             FAIL("write failed");
         }
@@ -107,14 +108,14 @@ std::string write_basic_data(){
 }
 Graph get_graph(storage::DynNodeStoragePtr node_storage) {
     Graph gd{node_storage};
-    for (auto const &q : quads) {
+    for (auto const &q : quads(node_storage)) {
         gd.add(q.without_graph());
     }
     return gd;
 }
 Dataset get_dataset(storage::DynNodeStoragePtr node_storage) {
     Dataset gd{node_storage};
-    for (auto const &q : quads) {
+    for (auto const &q : quads(node_storage)) {
         gd.add(q);
     }
     return gd;
@@ -177,9 +178,9 @@ TEST_CASE("basic ntriple") {
 
     // reordered because graph is unordered_map
     CHECK_EQ(res,
-             "<http://ex/sub> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://ex/obj> .\n"
-             "<http://ex/sub> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> \"5\"^^<http://www.w3.org/2001/XMLSchema#int> .\n"
-             "<http://ex/sub> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> \"7\"^^<http://www.w3.org/2001/XMLSchema#int> .\n");
+            "<http://ex/sub> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> \"5\"^^<http://www.w3.org/2001/XMLSchema#int> .\n"
+            "<http://ex/sub> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> \"7\"^^<http://www.w3.org/2001/XMLSchema#int> .\n"
+            "<http://ex/sub> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://ex/obj> .\n");
 }
 
 TEST_CASE("basic nquad") {
@@ -223,9 +224,9 @@ TEST_CASE("basic turtle") {
     CHECK_EQ(res,
              "@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .\n"
              "@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .\n"
-             "<http://ex/sub> a <http://ex/obj> ,\n"
-             "\"5\"^^xsd:int ,\n"
-             "\"7\"^^xsd:int .\n");
+             "<http://ex/sub> a \"5\"^^xsd:int ,\n"
+             "\"7\"^^xsd:int ,\n"
+             "<http://ex/obj> .\n");
 }
 
 TEST_CASE("basic trig") {
