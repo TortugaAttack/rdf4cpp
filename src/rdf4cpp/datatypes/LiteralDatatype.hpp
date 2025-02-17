@@ -83,11 +83,13 @@ concept NumericStub = requires {
  * A timepoint type
  */
 template<typename LiteralDatatypeImpl>
-concept Timepoint = requires (typename LiteralDatatypeImpl::cpp_type const &tp, typename LiteralDatatypeImpl::timepoint_duration_cpp_type const &dur) {
-                        requires LiteralDatatypeOrUndefined<typename LiteralDatatypeImpl::timepoint_duration_type>;
-                        typename LiteralDatatypeImpl::timepoint_duration_cpp_type;
+concept Timepoint = requires (typename LiteralDatatypeImpl::cpp_type const &tp, typename LiteralDatatypeImpl::timepoint_duration_operand_cpp_type const &dur) {
+                        requires LiteralDatatypeOrUndefined<typename LiteralDatatypeImpl::timepoint_sub_result>;
+                        requires LiteralDatatypeOrUndefined<typename LiteralDatatypeImpl::timepoint_duration_operand_type>;
+                        typename LiteralDatatypeImpl::timepoint_sub_result_cpp_type;
+                        typename LiteralDatatypeImpl::timepoint_duration_operand_cpp_type;
 
-                        { LiteralDatatypeImpl::timepoint_sub(tp, tp) } -> std::convertible_to<nonstd::expected<typename LiteralDatatypeImpl::cpp_type, DynamicError>>;
+                        { LiteralDatatypeImpl::timepoint_sub(tp, tp) } -> std::convertible_to<nonstd::expected<typename LiteralDatatypeImpl::timepoint_sub_result_cpp_type, DynamicError>>;
                         { LiteralDatatypeImpl::timepoint_duration_add(tp, dur) } -> std::convertible_to<nonstd::expected<typename LiteralDatatypeImpl::cpp_type, DynamicError>>;
                         { LiteralDatatypeImpl::timepoint_duration_sub(tp, dur) } -> std::convertible_to<nonstd::expected<typename LiteralDatatypeImpl::cpp_type, DynamicError>>;
                     };

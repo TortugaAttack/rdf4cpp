@@ -21,6 +21,15 @@ template<>
 struct DatatypeSupertypeMapping<xsd_date> {
     using supertype = xsd::DateTime;
 };
+template<>
+struct DatatypeTimepointDurationOperandMapping<xsd_date> {
+    using duration_type = xsd::DayTimeDuration;
+};
+template<>
+struct DatatypeTimepointSubResultMapping<xsd_date> {
+    using op_result = xsd::DayTimeDuration;
+};
+
 
 template<>
 capabilities::Default<xsd_date>::cpp_type capabilities::Default<xsd_date>::from_string(std::string_view s);
@@ -45,9 +54,23 @@ capabilities::Subtype<xsd_date>::super_cpp_type<0> capabilities::Subtype<xsd_dat
 template<>
 template<>
 nonstd::expected<capabilities::Subtype<xsd_date>::cpp_type, DynamicError> capabilities::Subtype<xsd_date>::from_supertype<0>(super_cpp_type<0> const &value) noexcept;
+
+template<>
+nonstd::expected<capabilities::Timepoint<xsd_date>::timepoint_sub_result_cpp_type, DynamicError>
+capabilities::Timepoint<xsd_date>::timepoint_sub(cpp_type const &lhs, cpp_type const &rhs) noexcept;
+
+template<>
+nonstd::expected<capabilities::Timepoint<xsd_date>::cpp_type, DynamicError>
+capabilities::Timepoint<xsd_date>::timepoint_duration_add(cpp_type const &tp, timepoint_duration_operand_cpp_type const &dur) noexcept;
+
+template<>
+nonstd::expected<capabilities::Timepoint<xsd_date>::cpp_type, DynamicError>
+capabilities::Timepoint<xsd_date>::timepoint_duration_sub(cpp_type const &tp, timepoint_duration_operand_cpp_type const &dur) noexcept;
+
 #endif
 
 extern template struct LiteralDatatypeImpl<xsd_date,
+                                           capabilities::Timepoint,
                                            capabilities::Comparable,
                                            capabilities::FixedId,
                                            capabilities::Inlineable,
@@ -58,6 +81,7 @@ extern template struct LiteralDatatypeImpl<xsd_date,
 namespace rdf4cpp::datatypes::xsd {
 
 struct Date : registry::LiteralDatatypeImpl<registry::xsd_date,
+                                            registry::capabilities::Timepoint,
                                             registry::capabilities::Comparable,
                                             registry::capabilities::FixedId,
                                             registry::capabilities::Inlineable,

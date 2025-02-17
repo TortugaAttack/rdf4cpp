@@ -57,7 +57,26 @@ private:
         requires std::is_nothrow_invocable_r_v<datatypes::registry::DatatypeRegistry::unop_fptr_t, OpSelect, datatypes::registry::DatatypeRegistry::NumericOpsImpl const &>
     [[nodiscard]] Literal numeric_unop_impl(OpSelect op_select, storage::DynNodeStoragePtr node_storage = keep_node_storage) const;
 
+    template<typename Op, typename GetThisEntry, typename GetOtherEntry>
+    [[nodiscard]] std::optional<Literal> run_binop(Literal const &other,
+                                                   datatypes::registry::DatatypeIDView const &this_datatype,
+                                                   datatypes::registry::DatatypeIDView const &other_datatype,
+                                                   storage::DynNodeStoragePtr node_storage,
+                                                   GetThisEntry &&get_this_entry,
+                                                   GetOtherEntry &&get_other_entry,
+                                                   Op &&op) const;
+
+    template<typename Op>
+    [[nodiscard]] std::optional<Literal> run_binop_cast_rhs(Literal const &other,
+                                                            datatypes::registry::DatatypeIDView const &other_datatype,
+                                                            datatypes::registry::DatatypeIDView const &other_target,
+                                                            storage::DynNodeStoragePtr node_storage,
+                                                            Op &&op) const;
+
     [[nodiscard]] std::optional<Literal> chrono_add_impl(Literal const &other, storage::DynNodeStoragePtr node_storage) const;
+    [[nodiscard]] std::optional<Literal> chrono_sub_impl(Literal const &other, storage::DynNodeStoragePtr node_storage) const;
+    [[nodiscard]] std::optional<Literal> chrono_mul_impl(Literal const &other, storage::DynNodeStoragePtr node_storage) const;
+    [[nodiscard]] std::optional<Literal> chrono_div_impl(Literal const &other, storage::DynNodeStoragePtr node_storage) const;
 
     /**
      * @brief the implementation of the value comparison function
@@ -705,53 +724,6 @@ public:
                 return std::nullopt;
             }
             return std::any_cast<typename T::cpp_type>(*target_value);
-        }
-
-        // no conversion found
-        return std::nullopt;
-    }
-
-    /**
-     * Tries to cast this literal to a literal of the given type and return the result without creating a Literal.
-     * Only considers casts from subtype to supertype.
-     *
-     * @return conversion result
-     */
-    template<datatypes::LiteralDatatype T>
-    requires (!std::same_as<T, datatypes::xsd::String>)
-    std::optional<typename T::cpp_type> cast_to_supertype_value() const noexcept {
-        using namespace datatypes::registry;
-        using namespace datatypes::xsd;
-
-        if (this->null()) {
-            return std::nullopt;
-        }
-
-        auto const this_dtid = this->datatype_id();
-        DatatypeIDView const target_dtid = T::datatype_id;
-
-        if (this_dtid == target_dtid) {
-            return this->value<T>();
-        }
-
-        auto const *target_e = DatatypeRegistry::get_entry(target_dtid);
-        if (target_e == nullptr) {
-            // target not registered
-            return std::nullopt;
-        }
-
-        auto const *this_e = DatatypeRegistry::get_entry(this_dtid);
-        if (this_e == nullptr) {
-            // this datatype not registered
-            return std::nullopt;
-        }
-
-        if (auto const common_conversion = DatatypeRegistry::get_common_type_conversion(this_e->conversion_table, target_e->conversion_table); common_conversion.has_value()) {
-            if (common_conversion->target_type_id != target_dtid) // the found conversion does require downcasting
-                return std::nullopt;
-
-            auto const target_value = common_conversion->convert_lhs(this->value());
-            return std::any_cast<typename T::cpp_type>(target_value);
         }
 
         // no conversion found

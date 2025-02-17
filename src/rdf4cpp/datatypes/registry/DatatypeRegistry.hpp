@@ -103,12 +103,16 @@ struct DatatypeRegistry {
     };
 
     struct TimepointOps {
+        DatatypeIDView timepoint_duration_type;
+
         binop_fptr_t timepoint_sub; // timepoint - timepoint -> duration
         binop_fptr_t timepoint_duration_add; // timepoint + duration -> timepoint
         binop_fptr_t timepoint_duration_sub; // timepoint - duration -> timepoint
     };
 
     struct DurationOps {
+        DatatypeIDView duration_scalar_type;
+
         binop_fptr_t duration_add; // duration + duration -> duration
         binop_fptr_t duration_sub; // duration - duration -> duration
         binop_fptr_t duration_div; // duration / duration -> duration_div_result
@@ -779,17 +783,24 @@ DatatypeRegistry::NumericOpsImpl DatatypeRegistry::make_numeric_ops_impl() noexc
 template<datatypes::TimepointLiteralDatatype LiteralDatatype_t>
 DatatypeRegistry::TimepointOps DatatypeRegistry::make_timepoint_ops() noexcept {
     return TimepointOps{
+        .timepoint_duration_type = []() -> DatatypeIDView {
+            if constexpr (FixedIdLiteralDatatype<LiteralDatatype_t>) {
+                return DatatypeIDView{LiteralDatatype_t::fixed_id};
+            } else {
+                return DatatypeIDView{LiteralDatatype_t::identifier};
+            }
+        }(),
         .timepoint_sub = [](std::any const &lhs, std::any const &rhs) noexcept -> OpResult {
             auto const &lhs_val = std::any_cast<typename LiteralDatatype_t::cpp_type>(lhs);
             auto const &rhs_val = std::any_cast<typename LiteralDatatype_t::cpp_type>(rhs);
 
             return OpResult{
-                .result_type_id = detail::SelectOpResIRI<LiteralDatatype_t, LiteralDatatype_t>::select(),
+                .result_type_id = detail::SelectOpResIRI<typename LiteralDatatype_t::timepoint_sub_result, LiteralDatatype_t>::select(),
                 .result_value = detail::map_expected(LiteralDatatype_t::timepoint_sub(lhs_val, rhs_val))};
         },
         .timepoint_duration_add = [](std::any const &tp, std::any const &dur) noexcept -> OpResult {
             auto const &tp_val = std::any_cast<typename LiteralDatatype_t::cpp_type>(tp);
-            auto const &dur_val = std::any_cast<typename LiteralDatatype_t::timepoint_duration_cpp_type>(dur);
+            auto const &dur_val = std::any_cast<typename LiteralDatatype_t::timepoint_duration_operand_cpp_type>(dur);
 
             return OpResult{
                 .result_type_id = detail::SelectOpResIRI<LiteralDatatype_t, LiteralDatatype_t>::select(),
@@ -797,7 +808,7 @@ DatatypeRegistry::TimepointOps DatatypeRegistry::make_timepoint_ops() noexcept {
         },
         .timepoint_duration_sub = [](std::any const &tp, std::any const &dur) noexcept -> OpResult {
             auto const &tp_val = std::any_cast<typename LiteralDatatype_t::cpp_type>(tp);
-            auto const &dur_val = std::any_cast<typename LiteralDatatype_t::timepoint_duration_cpp_type>(dur);
+            auto const &dur_val = std::any_cast<typename LiteralDatatype_t::timepoint_duration_operand_cpp_type>(dur);
 
             return OpResult{
                 .result_type_id = detail::SelectOpResIRI<LiteralDatatype_t, LiteralDatatype_t>::select(),
@@ -808,6 +819,13 @@ DatatypeRegistry::TimepointOps DatatypeRegistry::make_timepoint_ops() noexcept {
 template<datatypes::DurationLiteralDatatype LiteralDatatype_t>
 DatatypeRegistry::DurationOps DatatypeRegistry::make_duration_ops() noexcept {
     return DurationOps{
+        .duration_scalar_type = []() noexcept -> DatatypeIDView {
+            if constexpr (FixedIdLiteralDatatype<LiteralDatatype_t>) {
+                return DatatypeIDView{LiteralDatatype_t::fixed_id};
+            } else {
+                return DatatypeIDView{LiteralDatatype_t::identifier};
+            }
+        }(),
         .duration_add = [](std::any const &lhs, std::any const &rhs) noexcept -> OpResult {
             auto const &lhs_val = std::any_cast<typename LiteralDatatype_t::cpp_type>(lhs);
             auto const &rhs_val = std::any_cast<typename LiteralDatatype_t::cpp_type>(rhs);

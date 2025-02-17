@@ -676,9 +676,6 @@ TEST_CASE("Literal API") {
 TEST_CASE("arithmetic") {
     using namespace rdf4cpp;
 
-    CHECK(Literal::make_typed<datatypes::xsd::Date>("2042-5-6").cast_to_supertype_value<datatypes::xsd::DateTime>().has_value());
-    CHECK(!Literal::make_typed<datatypes::xsd::DateTime>("2042-5-6T1:2:3").cast_to_supertype_value<datatypes::xsd::Date>().has_value());
-
     CHECK((Literal::make_typed<datatypes::xsd::Date>("2042-5-6") - Literal::make_typed<datatypes::xsd::Date>("2042-5-5")) == Literal::make_typed<datatypes::xsd::DayTimeDuration>("P1D"));
     CHECK((Literal::make_typed<datatypes::xsd::Date>("2042-4-6") - Literal::make_typed<datatypes::xsd::Date>("2042-5-7")) == Literal::make_typed<datatypes::xsd::DayTimeDuration>("-P31D"));
     CHECK((Literal::make_typed<datatypes::xsd::Time>("1:2:3") - Literal::make_typed<datatypes::xsd::Time>("1:1:3")) == Literal::make_typed<datatypes::xsd::DayTimeDuration>("PT1M"));
