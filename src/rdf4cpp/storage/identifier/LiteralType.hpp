@@ -12,7 +12,8 @@ namespace rdf4cpp::storage::identifier {
 enum struct LiteralTypeTag : uint8_t {
     Default = 0b00,
     Numeric = 0b01,
-    Chrono = 0b10,
+    Timepoint = 0b10,
+    Duration  = 0b11,
 };
 
 /**
@@ -57,12 +58,20 @@ public:
         return static_cast<LiteralTypeTag>((underlying_ >> numeric_tagging_bit_shift) & 0b11) == LiteralTypeTag::Numeric;
     }
 
-    [[nodiscard]] constexpr TriBool is_chrono() const noexcept {
+    [[nodiscard]] constexpr TriBool is_timepoint() const noexcept {
         if (!is_fixed()) {
             return TriBool::Err;
         }
 
-        return static_cast<LiteralTypeTag>((underlying_ >> numeric_tagging_bit_shift) & 0b11)  == LiteralTypeTag::Chrono;
+        return static_cast<LiteralTypeTag>((underlying_ >> numeric_tagging_bit_shift) & 0b11)  == LiteralTypeTag::Timepoint;
+    }
+
+    [[nodiscard]] constexpr TriBool is_duration() const noexcept {
+        if (!is_fixed()) {
+            return TriBool::Err;
+        }
+
+        return static_cast<LiteralTypeTag>((underlying_ >> numeric_tagging_bit_shift) & 0b11)  == LiteralTypeTag::Duration;
     }
 
     [[nodiscard]] constexpr uint8_t type_id() const noexcept {

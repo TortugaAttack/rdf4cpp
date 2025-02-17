@@ -126,6 +126,21 @@ struct DatatypeCeilResultMapping {
     using op_result = std::false_type;
 };
 
+template<util::ConstexprString type_iri>
+struct DatatypeTimepointDurationMapping {
+    using duration_type = std::false_type;
+};
+
+template<util::ConstexprString type_iri>
+struct DatatypeDurationScalarMapping {
+    using scalar_type = std::false_type;
+};
+
+template<util::ConstexprString type_iri>
+struct DatatypeDurationDivResultMapping {
+    using op_result = std::false_type;
+};
+
 namespace detail_rank {
 
 template<util::ConstexprString type_iri, size_t N>

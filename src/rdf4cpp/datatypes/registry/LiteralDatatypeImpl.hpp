@@ -303,12 +303,61 @@ struct NumericStub {
     static_assert(NumericImplLiteralDatatype<numeric_impl_type>, "numeric_impl_type must actually be impl-numeric");
 };
 
-/**
- * Marker to tell rdf4cpp that this type is a time or date related type
- */
+
 template<util::ConstexprString type_iri>
-struct Chrono {
-    using is_chrono = void;
+struct Timepoint {
+    using cpp_type = typename DatatypeMapping<type_iri>::cpp_datatype;
+
+    using timepoint_duration_type = typename DatatypeTimepointDurationMapping<type_iri>::duration_type;
+    static_assert(LiteralDatatypeOrUndefined<timepoint_duration_type>, "timepoint duration type must be a literal datatype");
+
+    using timepoint_duration_cpp_type = typename detail::SelectOpResult<timepoint_duration_type, cpp_type>::type;
+
+    static nonstd::expected<cpp_type, DynamicError> timepoint_sub([[maybe_unused]] cpp_type const &operand) noexcept {
+        return nonstd::make_unexpected(DynamicError::Unsupported);
+    }
+
+    static nonstd::expected<cpp_type, DynamicError> timepoint_duration_add([[maybe_unused]] cpp_type const &tp, [[maybe_unused]] timepoint_duration_cpp_type const &dur) noexcept {
+        return nonstd::make_unexpected(DynamicError::Unsupported);
+    }
+
+    static nonstd::expected<cpp_type, DynamicError> timepoint_duration_sub([[maybe_unused]] cpp_type const &tp, [[maybe_unused]] timepoint_duration_cpp_type const &dur) noexcept {
+        return nonstd::make_unexpected(DynamicError::Unsupported);
+    }
+};
+
+template<util::ConstexprString type_iri>
+struct Duration {
+    using cpp_type = typename DatatypeMapping<type_iri>::cpp_datatype;
+
+    using duration_scalar_type = typename DatatypeDurationScalarMapping<type_iri>::scalar_type;
+    using duration_div_result_type = typename DatatypeDurationDivResultMapping<type_iri>::op_result;
+
+    static_assert(LiteralDatatypeOrUndefined<duration_scalar_type>, "duration scalar type must be a literal datatype");
+    static_assert(LiteralDatatypeOrUndefined<duration_div_result_type>, "duration div result type must be a literal datatype");
+
+    using duration_scalar_cpp_type = typename detail::SelectOpResult<duration_scalar_type, cpp_type>::type;
+    using duration_div_result_cpp_type = typename detail::SelectOpResult<duration_div_result_type, cpp_type>::type;
+
+    static nonstd::expected<cpp_type, DynamicError> duration_add([[maybe_unused]] cpp_type const &lhs, [[maybe_unused]] cpp_type const &rhs) noexcept {
+        return nonstd::make_unexpected(DynamicError::Unsupported);
+    }
+
+    static nonstd::expected<cpp_type, DynamicError> duration_sub([[maybe_unused]] cpp_type const &lhs, [[maybe_unused]] cpp_type const &rhs) noexcept {
+        return nonstd::make_unexpected(DynamicError::Unsupported);
+    }
+
+    static nonstd::expected<duration_div_result_cpp_type, DynamicError> duration_div([[maybe_unused]] cpp_type const &lhs, [[maybe_unused]] cpp_type const &rhs) noexcept {
+        return nonstd::make_unexpected(DynamicError::Unsupported);
+    }
+
+    static nonstd::expected<cpp_type, DynamicError> duration_scalar_mul([[maybe_unused]] cpp_type const &dur, [[maybe_unused]] duration_scalar_cpp_type const &scalar) noexcept {
+        return nonstd::make_unexpected(DynamicError::Unsupported);
+    }
+
+    static nonstd::expected<cpp_type, DynamicError> duration_scalar_div([[maybe_unused]] cpp_type const &dur, [[maybe_unused]] duration_scalar_cpp_type const &scalar) noexcept {
+        return nonstd::make_unexpected(DynamicError::Unsupported);
+    }
 };
 
 /**

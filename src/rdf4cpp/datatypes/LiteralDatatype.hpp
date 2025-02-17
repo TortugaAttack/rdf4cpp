@@ -80,12 +80,31 @@ concept NumericStub = requires {
                       };
 
 /**
- * A chrono type
+ * A timepoint type
  */
 template<typename LiteralDatatypeImpl>
-concept Chrono = requires {
-                     typename LiteralDatatypeImpl::is_chrono;
-                 };
+concept Timepoint = requires (typename LiteralDatatypeImpl::cpp_type const &tp, typename LiteralDatatypeImpl::timepoint_duration_cpp_type const &dur) {
+                        requires LiteralDatatypeOrUndefined<typename LiteralDatatypeImpl::timepoint_duration_type>;
+                        typename LiteralDatatypeImpl::timepoint_duration_cpp_type;
+
+                        { LiteralDatatypeImpl::timepoint_sub(tp, tp) } -> std::convertible_to<nonstd::expected<typename LiteralDatatypeImpl::cpp_type, DynamicError>>;
+                        { LiteralDatatypeImpl::timepoint_duration_add(tp, dur) } -> std::convertible_to<nonstd::expected<typename LiteralDatatypeImpl::cpp_type, DynamicError>>;
+                        { LiteralDatatypeImpl::timepoint_duration_sub(tp, dur) } -> std::convertible_to<nonstd::expected<typename LiteralDatatypeImpl::cpp_type, DynamicError>>;
+                    };
+
+template<typename LiteralDatatypeImpl>
+concept Duration = requires (typename LiteralDatatypeImpl::cpp_type const &dur, typename LiteralDatatypeImpl::duration_scalar_cpp_type const &scalar) {
+                       requires LiteralDatatypeOrUndefined<typename LiteralDatatypeImpl::duration_scalar_type>;
+                       requires LiteralDatatypeOrUndefined<typename LiteralDatatypeImpl::duration_div_result_type>;
+                       typename LiteralDatatypeImpl::duration_scalar_cpp_type;
+                       typename LiteralDatatypeImpl::duration_div_result_cpp_type;
+
+                       { LiteralDatatypeImpl::duration_add(dur, dur) } -> std::convertible_to<nonstd::expected<typename LiteralDatatypeImpl::cpp_type, DynamicError>>;
+                       { LiteralDatatypeImpl::duration_sub(dur, dur) } -> std::convertible_to<nonstd::expected<typename LiteralDatatypeImpl::cpp_type, DynamicError>>;
+                       { LiteralDatatypeImpl::duration_div(dur, dur) } -> std::convertible_to<nonstd::expected<typename LiteralDatatypeImpl::duration_div_result_cpp_type, DynamicError>>;
+                       { LiteralDatatypeImpl::duration_scalar_mul(dur, scalar) } -> std::convertible_to<nonstd::expected<typename LiteralDatatypeImpl::cpp_type, DynamicError>>;
+                       { LiteralDatatypeImpl::duration_scalar_div(dur, scalar) } -> std::convertible_to<nonstd::expected<typename LiteralDatatypeImpl::cpp_type, DynamicError>>;
+                   };
 
 /**
  * A LiteralDatatype that is numeric but does not itself have an impl for any numeric op
@@ -102,7 +121,10 @@ template<typename LiteralDatatypeImpl>
 concept NumericLiteralDatatype = LiteralDatatype<LiteralDatatypeImpl> && (NumericImpl<LiteralDatatypeImpl> || NumericStub<LiteralDatatypeImpl>);
 
 template<typename LiteralDatatypeImpl>
-concept ChronoLiteralDatatype = LiteralDatatype<LiteralDatatypeImpl> && Chrono<LiteralDatatypeImpl>;
+concept TimepointLiteralDatatype = LiteralDatatype<LiteralDatatypeImpl> && Timepoint<LiteralDatatypeImpl>;
+
+template<typename LiteralDatatypeImpl>
+concept DurationLiteralDatatype = LiteralDatatype<LiteralDatatypeImpl> && Duration<LiteralDatatypeImpl>;
 
 template<typename LiteralDatatypeImpl>
 concept LogicalLiteralDatatype = LiteralDatatype<LiteralDatatypeImpl> && requires(typename LiteralDatatypeImpl::cpp_type const &value) {

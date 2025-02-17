@@ -812,12 +812,20 @@ bool Literal::is_numeric() const noexcept {
     return !this->null() && datatypes::registry::DatatypeRegistry::get_numerical_ops(this->datatype_id()) != nullptr;
 }
 
-bool Literal::is_chrono() const noexcept {
-    if (auto const is_chrono = this->handle_.node_id().literal_type().is_chrono(); is_chrono != TriBool::Err) {
-        return is_chrono;
+bool Literal::is_timepoint() const noexcept {
+    if (auto const is_tp = this->handle_.node_id().literal_type().is_timepoint(); is_tp != TriBool::Err) {
+        return is_tp;
     }
 
-    return !this->null() && datatypes::registry::DatatypeRegistry::get_chrono_ops(this->datatype_id()) == nullptr;
+    return !this->null() && datatypes::registry::DatatypeRegistry::get_timepoint_ops(this->datatype_id()) == nullptr;
+}
+
+bool Literal::is_duration() const noexcept {
+    if (auto const is_dur = this->handle_.node_id().literal_type().is_duration(); is_dur != TriBool::Err) {
+        return is_dur;
+    }
+
+    return !this->null() && datatypes::registry::DatatypeRegistry::get_duration_ops(this->datatype_id()) == nullptr;
 }
 
 std::ostream &operator<<(std::ostream &os, Literal const &literal) {
@@ -992,8 +1000,8 @@ Literal Literal::numeric_binop_impl(OpSelect op_select, Literal const &other, st
     auto const other_datatype = other.datatype_id();
 
     if (this_datatype == other_datatype && this_entry->numeric_ops->is_impl()) {
-        DatatypeRegistry::NumericOpResult op_res = op_select(this_entry->numeric_ops->get_impl())(this->value(),
-                                                                                                  other.value());
+        DatatypeRegistry::OpResult op_res = op_select(this_entry->numeric_ops->get_impl())(this->value(),
+                                                                                           other.value());
 
         if (!op_res.result_value.has_value()) {
             return Literal{};
@@ -1038,8 +1046,8 @@ Literal Literal::numeric_binop_impl(OpSelect op_select, Literal const &other, st
         assert(equalized_entry->numeric_ops.has_value());
         assert(equalized_entry->numeric_ops->is_impl());
 
-        DatatypeRegistry::NumericOpResult op_res = op_select(equalized_entry->numeric_ops->get_impl())(equalizer->convert_lhs(this->value()),
-                                                                                                       equalizer->convert_rhs(other.value()));
+        DatatypeRegistry::OpResult op_res = op_select(equalized_entry->numeric_ops->get_impl())(equalizer->convert_lhs(this->value()),
+                                                                                                equalizer->convert_rhs(other.value()));
 
         if (!op_res.result_value.has_value()) {
             return Literal{};
@@ -1092,7 +1100,7 @@ Literal Literal::numeric_unop_impl(OpSelect op_select, storage::DynNodeStoragePt
     assert(operand_entry->numeric_ops.has_value());
     assert(operand_entry->numeric_ops->is_impl());
 
-    DatatypeRegistry::NumericOpResult op_res = op_select(operand_entry->numeric_ops->get_impl())(value);
+    DatatypeRegistry::OpResult op_res = op_select(operand_entry->numeric_ops->get_impl())(value);
 
     auto const *result_entry = [&op_res, operand_entry = operand_entry]() {
         if (op_res.result_type_id == DatatypeIDView{operand_entry->datatype_iri}) [[likely]] {
@@ -1330,6 +1338,12 @@ bool Literal::is_fixed() const noexcept {
 bool Literal::is_fixed_not_numeric() const noexcept {
     return this->handle_.node_id().literal_type().is_numeric() == TriBool::False;
 }
+bool Literal::is_fixed_not_timepoint() const noexcept {
+    return this->handle_.node_id().literal_type().is_timepoint() == TriBool::False;
+}
+bool Literal::is_fixed_not_duration() const noexcept {
+    return this->handle_.node_id().literal_type().is_duration() == TriBool::False;
+}
 
 bool Literal::is_string_like() const noexcept {
     auto const type = this->handle_.node_id().literal_type();
@@ -1341,6 +1355,74 @@ bool Literal::is_string_like() const noexcept {
     return type == datatypes::xsd::String::fixed_id || type == datatypes::rdf::LangString::fixed_id;
 }
 
+std::optional<Literal> Literal::chrono_add_impl(Literal const &other, storage::DynNodeStoragePtr node_storage) const {
+    using namespace datatypes::registry;
+
+    if ((this->is_fixed_not_timepoint() && this->is_fixed_not_duration()) || other.is_fixed_not_duration()) {
+        return std::nullopt;
+    }
+
+    auto const this_datatype = this->datatype_id();
+    auto const other_datatype = other.datatype_id();
+
+    auto const *other_entry = DatatypeRegistry::get_entry(other_datatype);
+    assert(other_entry != nullptr);
+
+    if (!other_entry->duration_ops.has_value()) {
+        return std::nullopt;
+    }
+
+    auto const *this_entry = DatatypeRegistry::get_entry(this_datatype);
+    assert(this_entry != nullptr);
+
+    if (this_entry->timepoint_ops.has_value()) {
+        // TODO
+        return Literal{};
+    }
+
+    if (this_entry->duration_ops.has_value()) {
+        auto const equalizer = DatatypeRegistry::get_common_numeric_op_type_conversion(*this_entry, *other_entry);
+        if (!equalizer.has_value()) {
+            // not convertible
+            return Literal{};
+        }
+
+        auto const [equalized_entry, equalized_id] = [&]() {
+            if (equalizer->target_type_id == this_datatype) {
+                return std::make_pair(this_entry, this_datatype);
+            } else if (equalizer->target_type_id == other_datatype) {
+                return std::make_pair(other_entry, other_datatype);
+            } else {
+                return std::make_pair(DatatypeRegistry::get_entry(equalizer->target_type_id), equalizer->target_type_id);
+            }
+        }();
+
+        assert(equalized_entry != nullptr);
+        assert(equalized_entry->numeric_ops.has_value());
+        assert(equalized_entry->numeric_ops->is_impl());
+
+        DatatypeRegistry::OpResult op_res = this_entry->duration_ops->duration_add(equalizer->convert_lhs(this->value()),
+                                                                                   equalizer->convert_rhs(other.value()));
+        if (!op_res.result_value.has_value()) {
+            // operation failed
+            return Literal{};
+        }
+
+        auto const *result_entry = [&, equalized_id = std::ref(equalized_id), equalized_entry = equalized_entry]() {
+            if (op_res.result_type_id == equalized_id.get()) [[likely]] {
+                return equalized_entry;
+            } else [[unlikely]] {
+                return DatatypeRegistry::get_entry(op_res.result_type_id);
+            }
+        }();
+
+        assert(result_entry != nullptr);
+        return Literal::make_typed_unchecked(std::move(*op_res.result_value), op_res.result_type_id, *result_entry, node_storage);
+    }
+
+    return std::nullopt;
+}
+
 Literal Literal::add(Literal const &other, storage::DynNodeStoragePtr node_storage) const {
     if (this->null() || other.null()) {
         return Literal{};
@@ -1348,7 +1430,11 @@ Literal Literal::add(Literal const &other, storage::DynNodeStoragePtr node_stora
 
     node_storage = select_node_storage(node_storage);
 
-    if (this->is_chrono() && other.is_chrono()) {
+    if (auto res = this->chrono_add_impl(other, node_storage); res.has_value()) {
+        return *res;
+    }
+
+    if (this->is_timepoint() && other.is_timepoint()) { // TODO
         // DayTimeDuration + DayTimeDuration
         {
             auto this_v = this->cast_to_supertype_value<datatypes::xsd::DayTimeDuration>();
@@ -1432,7 +1518,7 @@ Literal Literal::sub(Literal const &other, storage::DynNodeStoragePtr node_stora
     node_storage = select_node_storage(node_storage);
 
 
-    if (this->is_chrono() && other.is_chrono()) {
+    if (this->is_timepoint() && other.is_timepoint()) { // TODO
         // DateTime - DateTime
         try {
             auto this_dt = this->cast_to_supertype_value<datatypes::xsd::DateTime>();
@@ -1529,7 +1615,7 @@ Literal Literal::mul(Literal const &other, storage::DynNodeStoragePtr node_stora
 
     node_storage = select_node_storage(node_storage);
 
-    if (this->is_chrono() && other.is_numeric()) {
+    if (this->is_timepoint() && other.is_numeric()) { // TODO
         // YearMonthDuration * double
         {
             auto this_v = this->cast_to_supertype_value<datatypes::xsd::YearMonthDuration>();
@@ -1584,7 +1670,7 @@ Literal Literal::div(Literal const &other, storage::DynNodeStoragePtr node_stora
 
     node_storage = select_node_storage(node_storage);
 
-    if (this->is_chrono() && other.is_numeric()) {
+    if (this->is_timepoint() && other.is_numeric()) { // TODO
         // YearMonthDuration / double
         {
             auto this_v = this->cast_to_supertype_value<datatypes::xsd::YearMonthDuration>();
@@ -1612,7 +1698,7 @@ Literal Literal::div(Literal const &other, storage::DynNodeStoragePtr node_stora
         }
     }
 
-    if (this->is_chrono() && other.is_chrono()) {
+    if (this->is_timepoint() && other.is_timepoint()) { // TODO
         // YearMonthDuration / YearMonthDuration
         {
             auto this_v = this->cast_to_supertype_value<datatypes::xsd::YearMonthDuration>();

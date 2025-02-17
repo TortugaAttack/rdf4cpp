@@ -57,6 +57,8 @@ private:
         requires std::is_nothrow_invocable_r_v<datatypes::registry::DatatypeRegistry::unop_fptr_t, OpSelect, datatypes::registry::DatatypeRegistry::NumericOpsImpl const &>
     [[nodiscard]] Literal numeric_unop_impl(OpSelect op_select, storage::DynNodeStoragePtr node_storage = keep_node_storage) const;
 
+    [[nodiscard]] std::optional<Literal> chrono_add_impl(Literal const &other, storage::DynNodeStoragePtr node_storage) const;
+
     /**
      * @brief the implementation of the value comparison function
      *
@@ -89,6 +91,9 @@ private:
      * @return if the datatype of this is simultaneously fixed but not numeric
      */
     [[nodiscard]] bool is_fixed_not_numeric() const noexcept;
+
+    [[nodiscard]] bool is_fixed_not_timepoint() const noexcept;
+    [[nodiscard]] bool is_fixed_not_duration() const noexcept;
 
     /**
      * @return if this datatype is either xsd:string or rdf:langString
@@ -933,7 +938,8 @@ public:
     bool is_iri() const noexcept = delete;
 
     [[nodiscard]] bool is_numeric() const noexcept;
-    [[nodiscard]] bool is_chrono() const noexcept;
+    [[nodiscard]] bool is_timepoint() const noexcept;
+    [[nodiscard]] bool is_duration() const noexcept;
 
     /**
      * The literal comparison function for SPARQL filters (FILTER).
