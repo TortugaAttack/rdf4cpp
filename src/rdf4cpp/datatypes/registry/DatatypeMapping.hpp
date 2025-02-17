@@ -127,8 +127,13 @@ struct DatatypeCeilResultMapping {
 };
 
 template<util::ConstexprString type_iri>
-struct DatatypeTimepointDurationMapping {
+struct DatatypeTimepointDurationOperandMapping {
     using duration_type = std::false_type;
+};
+
+template<util::ConstexprString type_iri>
+struct DatatypeTimepointSubResultMapping {
+    using op_result = std::false_type;
 };
 
 template<util::ConstexprString type_iri>

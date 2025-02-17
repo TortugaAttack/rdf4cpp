@@ -308,20 +308,24 @@ template<util::ConstexprString type_iri>
 struct Timepoint {
     using cpp_type = typename DatatypeMapping<type_iri>::cpp_datatype;
 
-    using timepoint_duration_type = typename DatatypeTimepointDurationMapping<type_iri>::duration_type;
-    static_assert(LiteralDatatypeOrUndefined<timepoint_duration_type>, "timepoint duration type must be a literal datatype");
+    using timepoint_sub_result = typename DatatypeTimepointSubResultMapping<type_iri>::op_result;
+    using timepoint_duration_operand_type = typename DatatypeTimepointDurationOperandMapping<type_iri>::duration_type;
 
-    using timepoint_duration_cpp_type = typename detail::SelectOpResult<timepoint_duration_type, cpp_type>::type;
+    static_assert(LiteralDatatypeOrUndefined<timepoint_sub_result>, "timepoint sub result type must be a literal datatype");
+    static_assert(LiteralDatatypeOrUndefined<timepoint_duration_operand_type>, "timepoint duration operand type must be a literal datatype");
 
-    static nonstd::expected<cpp_type, DynamicError> timepoint_sub([[maybe_unused]] cpp_type const &operand) noexcept {
+    using timepoint_sub_result_cpp_type = typename detail::SelectOpResult<timepoint_sub_result, cpp_type>::type;
+    using timepoint_duration_operand_cpp_type = typename detail::SelectOpResult<timepoint_duration_operand_type, cpp_type>::type;
+
+    static nonstd::expected<timepoint_sub_result_cpp_type, DynamicError> timepoint_sub([[maybe_unused]] cpp_type const &lhs, [[maybe_unused]] cpp_type const &rhs) noexcept {
         return nonstd::make_unexpected(DynamicError::Unsupported);
     }
 
-    static nonstd::expected<cpp_type, DynamicError> timepoint_duration_add([[maybe_unused]] cpp_type const &tp, [[maybe_unused]] timepoint_duration_cpp_type const &dur) noexcept {
+    static nonstd::expected<cpp_type, DynamicError> timepoint_duration_add([[maybe_unused]] cpp_type const &tp, [[maybe_unused]] timepoint_duration_operand_cpp_type const &dur) noexcept {
         return nonstd::make_unexpected(DynamicError::Unsupported);
     }
 
-    static nonstd::expected<cpp_type, DynamicError> timepoint_duration_sub([[maybe_unused]] cpp_type const &tp, [[maybe_unused]] timepoint_duration_cpp_type const &dur) noexcept {
+    static nonstd::expected<cpp_type, DynamicError> timepoint_duration_sub([[maybe_unused]] cpp_type const &tp, [[maybe_unused]] timepoint_duration_operand_cpp_type const &dur) noexcept {
         return nonstd::make_unexpected(DynamicError::Unsupported);
     }
 };

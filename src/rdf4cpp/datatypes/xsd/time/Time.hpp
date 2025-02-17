@@ -8,6 +8,7 @@
 #include <rdf4cpp/datatypes/registry/LiteralDatatypeImpl.hpp>
 #include <rdf4cpp/Timezone.hpp>
 #include <rdf4cpp/datatypes/xsd/time/DateTime.hpp>
+#include <rdf4cpp/datatypes/xsd/time/DayTimeDuration.hpp>
 
 namespace rdf4cpp::datatypes::registry {
 
@@ -19,6 +20,14 @@ struct DatatypeMapping<xsd_time> {
 template<>
 struct DatatypeSupertypeMapping<xsd_time> {
     using supertype = xsd::DateTime;
+};
+template<>
+struct DatatypeTimepointDurationOperandMapping<xsd_time> {
+    using duration_type = xsd::DayTimeDuration;
+};
+template<>
+struct DatatypeTimepointSubResultMapping<xsd_time> {
+    using op_result = xsd::DayTimeDuration;
 };
 
 
@@ -44,9 +53,23 @@ capabilities::Subtype<xsd_time>::super_cpp_type<0> capabilities::Subtype<xsd_tim
 template<>
 template<>
 nonstd::expected<capabilities::Subtype<xsd_time>::cpp_type, DynamicError> capabilities::Subtype<xsd_time>::from_supertype<0>(super_cpp_type<0> const &value) noexcept;
+
+template<>
+nonstd::expected<capabilities::Timepoint<xsd_time>::timepoint_sub_result_cpp_type, DynamicError>
+capabilities::Timepoint<xsd_time>::timepoint_sub(cpp_type const &lhs, cpp_type const &rhs) noexcept;
+
+template<>
+nonstd::expected<capabilities::Timepoint<xsd_time>::cpp_type, DynamicError>
+capabilities::Timepoint<xsd_time>::timepoint_duration_add(cpp_type const &tp, timepoint_duration_operand_cpp_type const &dur) noexcept;
+
+template<>
+nonstd::expected<capabilities::Timepoint<xsd_time>::cpp_type, DynamicError>
+capabilities::Timepoint<xsd_time>::timepoint_duration_sub(cpp_type const &tp, timepoint_duration_operand_cpp_type const &dur) noexcept;
+
 #endif
 
 extern template struct LiteralDatatypeImpl<xsd_time,
+                                           capabilities::Timepoint,
                                            capabilities::Comparable,
                                            capabilities::FixedId,
                                            capabilities::Inlineable,
@@ -57,6 +80,7 @@ extern template struct LiteralDatatypeImpl<xsd_time,
 namespace rdf4cpp::datatypes::xsd {
 
 struct Time : registry::LiteralDatatypeImpl<registry::xsd_time,
+                                            registry::capabilities::Timepoint,
                                             registry::capabilities::Comparable,
                                             registry::capabilities::FixedId,
                                             registry::capabilities::Inlineable,

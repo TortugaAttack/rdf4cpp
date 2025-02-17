@@ -85,9 +85,51 @@ template<>
 nonstd::expected<capabilities::Subtype<xsd_time>::cpp_type, DynamicError> capabilities::Subtype<xsd_time>::from_supertype<0>(super_cpp_type<0> const &value) noexcept {
     return std::make_pair(std::chrono::duration_cast<std::chrono::nanoseconds>(value.first - std::chrono::floor<std::chrono::days>(value.first)), value.second);
 }
+
+template<>
+nonstd::expected<capabilities::Timepoint<xsd_time>::timepoint_sub_result_cpp_type, DynamicError>
+capabilities::Timepoint<xsd_time>::timepoint_sub(cpp_type const &lhs, cpp_type const &rhs) noexcept {
+    auto const super_lhs = Subtype<xsd_time>::into_supertype(lhs);
+    auto const super_rhs = Subtype<xsd_time>::into_supertype(rhs);
+
+    ZonedTime const this_tp{super_lhs.second.has_value() ? *super_lhs.second : Timezone{},
+                            super_lhs.first};
+
+    ZonedTime const other_tp{super_rhs.second.has_value() ? *super_rhs.second : Timezone{},
+                             super_rhs.first};
+
+    auto d = this_tp.get_sys_time() - other_tp.get_sys_time();
+    return std::chrono::duration_cast<std::chrono::nanoseconds>(d);
+}
+
+template<>
+nonstd::expected<capabilities::Timepoint<xsd_time>::cpp_type, DynamicError>
+capabilities::Timepoint<xsd_time>::timepoint_duration_add(cpp_type const &tp, timepoint_duration_operand_cpp_type const &dur) noexcept {
+    auto const super_tp = Subtype<xsd_time>::into_supertype(tp);
+    auto const super_dur = Subtype<timepoint_duration_operand_type::identifier>::into_supertype(dur);
+
+    auto ret_tp = util::add_duration_to_date_time(super_tp.first, super_dur);
+
+    auto [_, time] = rdf4cpp::util::deconstruct_timepoint(ret_tp);
+    return std::make_pair(std::chrono::duration_cast<std::chrono::nanoseconds>(time), super_tp.second);
+}
+
+template<>
+nonstd::expected<capabilities::Timepoint<xsd_time>::cpp_type, DynamicError>
+capabilities::Timepoint<xsd_time>::timepoint_duration_sub(cpp_type const &tp, timepoint_duration_operand_cpp_type const &dur) noexcept {
+    auto const super_tp = Subtype<xsd_time>::into_supertype(tp);
+    auto const super_dur = Subtype<timepoint_duration_operand_type::identifier>::into_supertype(dur);
+
+    auto ret_tp = util::add_duration_to_date_time(super_tp.first, std::make_pair(-super_dur.first, -super_dur.second));
+
+    auto [_, time] = rdf4cpp::util::deconstruct_timepoint(ret_tp);
+    return std::make_pair(std::chrono::duration_cast<std::chrono::nanoseconds>(time), super_tp.second);
+}
+
 #endif
 
 template struct LiteralDatatypeImpl<xsd_time,
+                                    capabilities::Timepoint,
                                     capabilities::Comparable,
                                     capabilities::FixedId,
                                     capabilities::Inlineable,

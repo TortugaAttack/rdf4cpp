@@ -93,9 +93,50 @@ template<>
 std::partial_ordering capabilities::Comparable<xsd_dateTime>::compare(cpp_type const &lhs, cpp_type const &rhs) noexcept {
     return rdf4cpp::datatypes::registry::util::compare_time_points(lhs.first, lhs.second, rhs.first, rhs.second);
 }
+
+template<>
+nonstd::expected<capabilities::Timepoint<xsd_dateTime>::timepoint_sub_result_cpp_type, DynamicError>
+capabilities::Timepoint<xsd_dateTime>::timepoint_sub(cpp_type const &lhs, cpp_type const &rhs) noexcept {
+    try {
+        ZonedTime const this_tp{lhs.second.has_value() ? *lhs.second : Timezone{},
+                                lhs.first};
+
+        ZonedTime const other_tp{rhs.second.has_value() ? *rhs.second : Timezone{},
+                                 rhs.first};
+
+        auto d = this_tp.get_sys_time() - other_tp.get_sys_time();
+        return std::chrono::duration_cast<std::chrono::nanoseconds>(d);
+    } catch (std::overflow_error const &) {
+        return nonstd::make_unexpected(DynamicError::OverOrUnderFlow);
+    }
+}
+
+template<>
+nonstd::expected<capabilities::Timepoint<xsd_dateTime>::cpp_type, DynamicError>
+capabilities::Timepoint<xsd_dateTime>::timepoint_duration_add(cpp_type const &tp, timepoint_duration_operand_cpp_type const &dur) noexcept {
+    try {
+        auto ret_tp = util::add_duration_to_date_time(tp.first, dur);
+        return std::make_pair(ret_tp, tp.second);
+    } catch (std::overflow_error const &) {
+        return nonstd::make_unexpected(DynamicError::OverOrUnderFlow);
+    }
+}
+
+template<>
+nonstd::expected<capabilities::Timepoint<xsd_dateTime>::cpp_type, DynamicError>
+capabilities::Timepoint<xsd_dateTime>::timepoint_duration_sub(cpp_type const &tp, timepoint_duration_operand_cpp_type const &dur) noexcept {
+    try {
+        auto ret_tp = util::add_duration_to_date_time(tp.first, std::make_pair(-dur.first, -dur.second));
+        return std::make_pair(ret_tp, tp.second);
+    } catch (std::overflow_error const &) {
+        return nonstd::make_unexpected(DynamicError::OverOrUnderFlow);
+    }
+}
+
 #endif
 
 template struct LiteralDatatypeImpl<xsd_dateTime,
+                                    capabilities::Timepoint,
                                     capabilities::Comparable,
                                     capabilities::FixedId,
                                     capabilities::Inlineable>;
