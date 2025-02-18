@@ -43,7 +43,7 @@ private:
      */
     template<typename OpSelect>
         requires std::is_nothrow_invocable_r_v<datatypes::registry::DatatypeRegistry::binop_fptr_t, OpSelect, datatypes::registry::DatatypeRegistry::NumericOpsImpl const &>
-    [[nodiscard]] Literal numeric_binop_impl(OpSelect op_select, Literal const &other, storage::DynNodeStoragePtr node_storage = keep_node_storage) const;
+    [[nodiscard]] Literal numeric_binop_impl(OpSelect op_select, Literal const &other, storage::DynNodeStoragePtr node_storage) const;
 
     /**
      * the implementation for all numeric, unary operations
@@ -55,27 +55,106 @@ private:
      */
     template<typename OpSelect>
         requires std::is_nothrow_invocable_r_v<datatypes::registry::DatatypeRegistry::unop_fptr_t, OpSelect, datatypes::registry::DatatypeRegistry::NumericOpsImpl const &>
-    [[nodiscard]] Literal numeric_unop_impl(OpSelect op_select, storage::DynNodeStoragePtr node_storage = keep_node_storage) const;
+    [[nodiscard]] Literal numeric_unop_impl(OpSelect op_select, storage::DynNodeStoragePtr node_storage) const;
 
-    template<typename Op, typename GetThisEntry, typename GetOtherEntry>
+    /**
+     * Run a binary operation potentially involving casts to equalize the datatypes of the values
+     *
+     * @param other rhs of operation
+     * @param this_datatype `this->datatype_id()`
+     * @param this_entry datatype entry of this
+     * @param other_datatype `other.datatype_id()`
+     * @param other_entry datatype entry of other
+     * @param node_storage the node storage the resulting value will be placed in
+     * @param op function with signature `DatatypeRegistry::OpResult(DatatypeEntry const &equalized_entry, std::any const &equalized_lhs, std::any const &equalized_rhs)` to perform the operation
+     * @return
+     *  - nullopt if there is no conversion for *this and other
+     *  - null-literal if there was a conversion but some operation failed
+     *  - otherwise the result of the operation
+     */
+    template<typename Op>
     [[nodiscard]] std::optional<Literal> run_binop(Literal const &other,
                                                    datatypes::registry::DatatypeIDView const &this_datatype,
+                                                   datatypes::registry::DatatypeRegistry::DatatypeEntry const &this_entry,
                                                    datatypes::registry::DatatypeIDView const &other_datatype,
+                                                   datatypes::registry::DatatypeRegistry::DatatypeEntry const &other_entry,
                                                    storage::DynNodeStoragePtr node_storage,
-                                                   GetThisEntry &&get_this_entry,
-                                                   GetOtherEntry &&get_other_entry,
                                                    Op &&op) const;
 
+    /**
+     * Cast other to a desired type, then run a binary operation on the original value of *this and the casted value of other
+     *
+     * @param other rhs of the operation
+     * @param other_entry datatype entry of other
+     * @param other_target the target type other is supposed to be cast to
+     * @param node_storage node storage the resulting value will be placed in
+     * @param op function with signature `DatatypeRegistry::OpResult(std::any const &lhs_original, std::any const &rhs_casted)`
+     * @return
+     *  - nullopt if other could not be cast
+     *  - null-literal if other could be cast but the binary operation failed
+     *  - other the result of the operation
+     */
     template<typename Op>
     [[nodiscard]] std::optional<Literal> run_binop_cast_rhs(Literal const &other,
-                                                            datatypes::registry::DatatypeIDView const &other_datatype,
+                                                            datatypes::registry::DatatypeRegistry::DatatypeEntry const &other_entry,
                                                             datatypes::registry::DatatypeIDView const &other_target,
                                                             storage::DynNodeStoragePtr node_storage,
                                                             Op &&op) const;
 
+    /**
+     * Try if this and other are chrono and addable, if yes add them. This implements:
+     *  - duration + duration
+     *  - timepoint + duration
+     *
+     * @param other rhs of addition
+     * @param node_storage node storage in which resulting node will be placed
+     * @return
+     *  - nullopt if this and other are not chrono-addable
+     *  - null-literal if they are chrono-addable but the operation failed
+     *  - other the result of the addition
+     */
     [[nodiscard]] std::optional<Literal> chrono_add_impl(Literal const &other, storage::DynNodeStoragePtr node_storage) const;
+
+    /**
+     * Try if this and other are chrono and subtractable, if yes subtract them. This implements:
+     *  - duration - duration
+     *  - timepoint - timepoint
+     *  - timepoint - duration
+     *
+     * @param other rhs of subtraction
+     * @param node_storage node storage in which resulting node will be placed
+     * @return
+     *  - nullopt if this and other are not chrono-subtractable
+     *  - null-literal if they are chrono-subtractable but the operation failed
+     *  - other the result of the subtraction
+     */
     [[nodiscard]] std::optional<Literal> chrono_sub_impl(Literal const &other, storage::DynNodeStoragePtr node_storage) const;
+
+    /**
+     * Try if this and other are chrono and multipliable, if yes multiply them. This implements:
+     *  - duration * numeric
+     *
+     * @param other rhs of multiplication
+     * @param node_storage node storage in which resulting node will be placed
+     * @return
+     *  - nullopt if this and other are not chrono-multipliable
+     *  - null-literal if they are chrono-multipliable but the operation failed
+     *  - other the result of the multiplication
+     */
     [[nodiscard]] std::optional<Literal> chrono_mul_impl(Literal const &other, storage::DynNodeStoragePtr node_storage) const;
+
+    /**
+     * Try if this and other are chrono and dividable, if yes divide them. This implements:
+     *  - duration / duration
+     *  - duration / numeric
+     *
+     * @param other rhs of division
+     * @param node_storage node storage in which resulting node will be placed
+     * @return
+     *  - nullopt if this and other are not chrono-dividable
+     *  - null-literal if they are chrono-dividable but the operation failed
+     *  - other the result of the division
+     */
     [[nodiscard]] std::optional<Literal> chrono_div_impl(Literal const &other, storage::DynNodeStoragePtr node_storage) const;
 
     /**
@@ -107,11 +186,18 @@ private:
     [[nodiscard]] bool is_fixed() const noexcept;
 
     /**
-     * @return if the datatype of this is simultaneously fixed but not numeric
+     * @return true iff the datatype of this is simultaneously fixed but not numeric
      */
     [[nodiscard]] bool is_fixed_not_numeric() const noexcept;
 
+    /**
+     * @return true iff the datatype of this is simultaneously fixed but not a timepoint
+     */
     [[nodiscard]] bool is_fixed_not_timepoint() const noexcept;
+
+    /**
+     * @return true iff the datatype of this is simultaneously fixed but not a duration
+     */
     [[nodiscard]] bool is_fixed_not_duration() const noexcept;
 
     /**

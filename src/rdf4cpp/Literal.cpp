@@ -1355,22 +1355,20 @@ bool Literal::is_string_like() const noexcept {
     return type == datatypes::xsd::String::fixed_id || type == datatypes::rdf::LangString::fixed_id;
 }
 
-template<typename Op, typename GetThisEntry, typename GetOtherEntry>
+template<typename Op>
 std::optional<Literal> Literal::run_binop(Literal const &other,
                                           datatypes::registry::DatatypeIDView const &this_datatype,
+                                          datatypes::registry::DatatypeRegistry::DatatypeEntry const &this_entry,
                                           datatypes::registry::DatatypeIDView const &other_datatype,
+                                          datatypes::registry::DatatypeRegistry::DatatypeEntry const &other_entry,
                                           storage::DynNodeStoragePtr node_storage,
-                                          GetThisEntry &&get_this_entry,
-                                          GetOtherEntry &&get_other_entry,
                                           Op &&op) const {
     using namespace datatypes::registry;
 
     if (this_datatype == other_datatype) {
         // fast path, equal types
-        auto const *this_entry = std::invoke(std::forward<GetThisEntry>(get_this_entry));
-
         DatatypeRegistry::OpResult op_res = std::invoke(std::forward<Op>(op),
-                                                        *this_entry,
+                                                        this_entry,
                                                         this->value(),
                                                         other.value());
         if (!op_res.result_value.has_value()) {
@@ -1378,9 +1376,9 @@ std::optional<Literal> Literal::run_binop(Literal const &other,
             return Literal{};
         }
 
-        auto const *result_entry = [&]() {
+        auto const *result_entry = [&]() noexcept {
             if (op_res.result_type_id == this_datatype) [[likely]] {
-                return this_entry;
+                return &this_entry;
             } else [[unlikely]] {
                 return DatatypeRegistry::get_entry(op_res.result_type_id);
             }
@@ -1390,16 +1388,16 @@ std::optional<Literal> Literal::run_binop(Literal const &other,
         return Literal::make_typed_unchecked(std::move(*op_res.result_value), op_res.result_type_id, *result_entry, node_storage);
     } else {
         // slow path, needs conversion
-        auto equalizer = DatatypeRegistry::get_common_type_conversion(this_datatype, other_datatype);
+        auto equalizer = DatatypeRegistry::get_common_type_conversion(this_entry.conversion_table, other_entry.conversion_table);
         if (!equalizer.has_value()) {
             return std::nullopt;
         }
 
         auto const [equalized_entry, equalized_id] = [&]() {
             if (equalizer->target_type_id == this_datatype) {
-                return std::make_pair(std::invoke(std::forward<GetThisEntry>(get_this_entry)), this_datatype);
+                return std::make_pair(&this_entry, this_datatype);
             } else if (equalizer->target_type_id == other_datatype) {
-                return std::make_pair(std::invoke(std::forward<GetOtherEntry>(get_other_entry)), other_datatype);
+                return std::make_pair(&other_entry, other_datatype);
             } else {
                 return std::make_pair(DatatypeRegistry::get_entry(equalizer->target_type_id), equalizer->target_type_id);
             }
@@ -1431,7 +1429,7 @@ std::optional<Literal> Literal::run_binop(Literal const &other,
 
 template<typename Op>
 std::optional<Literal> Literal::run_binop_cast_rhs(Literal const &other,
-                                                   datatypes::registry::DatatypeIDView const &other_datatype,
+                                                   datatypes::registry::DatatypeRegistry::DatatypeEntry const &other_entry,
                                                    datatypes::registry::DatatypeIDView const &other_target,
                                                    storage::DynNodeStoragePtr node_storage,
                                                    Op &&op) const {
@@ -1439,17 +1437,21 @@ std::optional<Literal> Literal::run_binop_cast_rhs(Literal const &other,
 
     assert(!this->null() && !other.null());
 
-    auto const other_converter = DatatypeRegistry::get_common_type_conversion(other_datatype, other_target);
+    auto const *target_entry = DatatypeRegistry::get_entry(other_target);
+    assert(target_entry != nullptr);
+
+    auto const other_converter = DatatypeRegistry::get_common_type_conversion(other_entry.conversion_table, target_entry->conversion_table);
     if (!other_converter.has_value()) {
         return std::nullopt;
     }
 
-    auto other_duration = other_converter->inverted_convert_rhs(other_converter->convert_lhs(other.value()));
-    if (!other_duration.has_value()) {
-        return Literal{};
+    if (other_converter->target_type_id != other_target) {
+        // invalid cast
+        return std::nullopt;
     }
 
-    DatatypeRegistry::OpResult op_res = std::invoke(std::forward<Op>(op), this->value(), *other_duration);
+    auto const other_casted = other_converter->convert_lhs(other.value());
+    DatatypeRegistry::OpResult op_res = std::invoke(std::forward<Op>(op), this->value(), other_casted);
     if (!op_res.result_value.has_value()) {
         return Literal{};
     }
@@ -1461,7 +1463,10 @@ std::optional<Literal> Literal::run_binop_cast_rhs(Literal const &other,
 std::optional<Literal> Literal::chrono_add_impl(Literal const &other, storage::DynNodeStoragePtr node_storage) const {
     using namespace datatypes::registry;
 
-    if (this->is_fixed_not_timepoint() && this->is_fixed_not_duration()) {
+    if ((this->is_fixed_not_timepoint() && this->is_fixed_not_duration()) || other.is_fixed_not_duration()) {
+        // not any of
+        // timepoint + duration
+        // duration + duration
         return std::nullopt;
     }
 
@@ -1471,17 +1476,23 @@ std::optional<Literal> Literal::chrono_add_impl(Literal const &other, storage::D
     auto const *this_entry = DatatypeRegistry::get_entry(this_datatype);
     assert(this_entry != nullptr);
 
+    auto const *other_entry = DatatypeRegistry::get_entry(other_datatype);
+    assert(other_entry != nullptr);
+
+    if (!other_entry->duration_ops.has_value()) {
+        // other is not duration
+        return std::nullopt;
+    }
+
     if (this_entry->timepoint_ops.has_value()) {
-        return run_binop_cast_rhs(other, other_datatype, this_entry->timepoint_ops->timepoint_duration_type, node_storage,
+        return run_binop_cast_rhs(other, *other_entry, this_entry->timepoint_ops->timepoint_duration_type, node_storage,
             [this_entry](std::any const &lhs, std::any const &rhs) noexcept {
                 return this_entry->timepoint_ops->timepoint_duration_add(lhs, rhs);
             });
     }
 
     if (this_entry->duration_ops.has_value()) {
-        return run_binop(other, this_datatype, other_datatype, node_storage,
-            [this_entry]() noexcept { return this_entry; },
-            [&other_datatype]() noexcept { return DatatypeRegistry::get_entry(other_datatype); },
+        return run_binop(other, this_datatype, *this_entry, other_datatype, *other_entry, node_storage,
             [](DatatypeRegistry::DatatypeEntry const &entry, std::any const &lhs, std::any const &rhs) noexcept {
                 assert(entry.duration_ops.has_value());
                 return entry.duration_ops->duration_add(lhs, rhs);
@@ -1528,7 +1539,11 @@ std::optional<Literal> Literal::chrono_sub_impl(Literal const &other, storage::D
 
     assert(!this->null() && !other.null());
 
-    if (this->is_fixed_not_timepoint() && this->is_fixed_not_duration()) {
+    if ((this->is_fixed_not_timepoint() && this->is_fixed_not_duration()) || (other.is_fixed_not_timepoint() && other.is_fixed_not_duration())) {
+        // is not any of
+        // duration - duration
+        // timepoint - timepoint
+        // timepoint - duration
         return std::nullopt;
     }
 
@@ -1538,29 +1553,30 @@ std::optional<Literal> Literal::chrono_sub_impl(Literal const &other, storage::D
     auto const *this_entry = DatatypeRegistry::get_entry(this_datatype);
     assert(this_entry != nullptr);
 
+    auto const *other_entry = DatatypeRegistry::get_entry(other_datatype);
+
     if (this_entry->timepoint_ops.has_value()) {
-        auto const binop_res = run_binop(other, this_datatype, other_datatype, node_storage,
-                [this_entry]() noexcept { return this_entry; },
-                [&other_datatype]() noexcept { return DatatypeRegistry::get_entry(other_datatype); },
+        if (other_entry->timepoint_ops.has_value()) {
+            // timepoint - timepoint
+            return run_binop(other, this_datatype, *this_entry, other_datatype, *other_entry, node_storage,
                 [](DatatypeRegistry::DatatypeEntry const &entry, std::any const &lhs, std::any const &rhs) noexcept {
                     assert(entry.timepoint_ops.has_value());
                     return entry.timepoint_ops->timepoint_sub(lhs, rhs);
                 });
-        if (binop_res.has_value()) {
-            return binop_res;
         }
 
-        // only other option is: rhs is duration
-        return run_binop_cast_rhs(other, other_datatype, this_entry->timepoint_ops->timepoint_duration_type, node_storage,
-            [this_entry](std::any const &lhs, std::any const &rhs) noexcept {
-                return this_entry->timepoint_ops->timepoint_duration_sub(lhs, rhs);
-            });
+        if (other_entry->duration_ops.has_value()) {
+            // timepoint - duration
+            return run_binop_cast_rhs(other, *other_entry, this_entry->timepoint_ops->timepoint_duration_type, node_storage,
+                [this_entry](std::any const &lhs, std::any const &rhs) noexcept {
+                    return this_entry->timepoint_ops->timepoint_duration_sub(lhs, rhs);
+                });
+        }
     }
 
-    if (this_entry->duration_ops.has_value()) {
-        return run_binop(other, this_datatype, other_datatype, node_storage,
-            [this_entry]() noexcept { return this_entry; },
-            [&other_datatype]() noexcept { return DatatypeRegistry::get_entry(other_datatype); },
+    if (this_entry->duration_ops.has_value() && other_entry->duration_ops.has_value()) {
+        // duration  - duration
+        return run_binop(other, this_datatype, *this_entry, other_datatype, *other_entry, node_storage,
             [](DatatypeRegistry::DatatypeEntry const &entry, std::any const &lhs, std::any const &rhs) noexcept {
                 assert(entry.duration_ops.has_value());
                 return entry.duration_ops->duration_sub(lhs, rhs);
@@ -1607,22 +1623,30 @@ std::optional<Literal> Literal::chrono_mul_impl(Literal const &other, storage::D
 
     assert(!this->null() && !other.null());
 
-    if (this->is_fixed_not_duration()) {
+    if (this->is_fixed_not_duration() && other.is_fixed_not_numeric()) {
+        // is not
+        // duration * scalar
         return std::nullopt;
     }
 
     auto const this_datatype = this->datatype_id();
-
     auto const *this_entry = DatatypeRegistry::get_entry(this_datatype);
     assert(this_entry != nullptr);
-
     if (!this_entry->duration_ops.has_value()) {
+        // lhs is not duration
         return std::nullopt;
     }
 
     auto const other_datatype = other.datatype_id();
+    auto const *other_entry = DatatypeRegistry::get_entry(other_datatype);
+    assert(other_entry != nullptr);
+    if (!other_entry->numeric_ops.has_value()) {
+        // rhs is not numeric
+        return std::nullopt;
+    }
 
-    return run_binop_cast_rhs(other, other_datatype, this_entry->duration_ops->duration_scalar_type, node_storage,
+    // duration * scalar
+    return run_binop_cast_rhs(other, *other_entry, this_entry->duration_ops->duration_scalar_type, node_storage,
         [this_entry](std::any const &lhs, std::any const &rhs) noexcept {
             return this_entry->duration_ops->duration_scalar_mul(lhs, rhs);
         });
@@ -1665,7 +1689,10 @@ std::optional<Literal> Literal::chrono_div_impl(Literal const &other, storage::D
 
     assert(!this->null() && !other.null());
 
-    if (this->is_fixed_not_duration()) {
+    if (this->is_fixed_not_duration() || (other.is_fixed_not_duration() && other.is_fixed_not_numeric())) {
+        // is not any of
+        // duration / duration
+        // duration / scalar
         return std::nullopt;
     }
 
@@ -1675,26 +1702,36 @@ std::optional<Literal> Literal::chrono_div_impl(Literal const &other, storage::D
     assert(this_entry != nullptr);
 
     if (!this_entry->duration_ops.has_value()) {
+        // lhs is not duration
         return std::nullopt;
     }
 
     auto const other_datatype = other.datatype_id();
+    auto const *other_entry = DatatypeRegistry::get_entry(other_datatype);
+    assert(other_entry != nullptr);
 
-    auto const binop_res = run_binop(other, this_datatype, other_datatype, node_storage,
-            [this_entry]() noexcept { return this_entry; },
-            [&other_datatype]() noexcept { return DatatypeRegistry::get_entry(other_datatype); },
+    if (other_entry->duration_ops.has_value()) {
+        // this & other are durations
+
+        auto const binop_res = run_binop(other, this_datatype, *this_entry, other_datatype, *other_entry, node_storage,
             [](DatatypeRegistry::DatatypeEntry const &entry, std::any const &lhs, std::any const &rhs) noexcept {
                 assert(entry.duration_ops.has_value());
                 return entry.duration_ops->duration_div(lhs, rhs);
             });
-    if (binop_res.has_value()) {
-        return binop_res;
+        if (binop_res.has_value()) {
+            return binop_res;
+        }
     }
 
-    return run_binop_cast_rhs(other, other_datatype, this_entry->duration_ops->duration_scalar_type, node_storage,
-        [this_entry](std::any const &lhs, std::any const &rhs) noexcept {
-            return this_entry->duration_ops->duration_scalar_div(lhs, rhs);
-        });
+    if (other_entry->numeric_ops.has_value()) {
+        // this is duration & other is scalar
+        return run_binop_cast_rhs(other, *other_entry, this_entry->duration_ops->duration_scalar_type, node_storage,
+            [this_entry](std::any const &lhs, std::any const &rhs) noexcept {
+                return this_entry->duration_ops->duration_scalar_div(lhs, rhs);
+            });
+    }
+
+    return std::nullopt;
 }
 
 Literal Literal::div(Literal const &other, storage::DynNodeStoragePtr node_storage) const {

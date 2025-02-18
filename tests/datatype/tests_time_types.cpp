@@ -719,6 +719,8 @@ TEST_CASE("arithmetic") {
     CHECK((Literal::make_typed<datatypes::xsd::DayTimeDuration>("P1DT1M") - Literal::make_typed<datatypes::xsd::DayTimeDuration>("P1DT1S")) == Literal::make_typed<datatypes::xsd::DayTimeDuration>("PT59S"));
     CHECK((Literal::make_typed<datatypes::xsd::YearMonthDuration>("P1Y") - Literal::make_typed<datatypes::xsd::YearMonthDuration>("P2Y")) == Literal::make_typed<datatypes::xsd::YearMonthDuration>("-P1Y"));
 
+    // TODO add tests for xsd:duration + xsd:duration & xsd:duration + xsd:dayTimeDuration & xsd:duration + xsd:yearMonthDuration & so on
+
     CHECK((Literal::make_typed<datatypes::xsd::DayTimeDuration>("P1DT1S") * Literal::make_typed<datatypes::xsd::Double>("2")) == Literal::make_typed<datatypes::xsd::DayTimeDuration>("P2DT2S"));
     CHECK((Literal::make_typed<datatypes::xsd::YearMonthDuration>("P1Y") * Literal::make_typed<datatypes::xsd::Double>("2")) == Literal::make_typed<datatypes::xsd::YearMonthDuration>("P2Y"));
     CHECK((Literal::make_typed<datatypes::xsd::DayTimeDuration>("P1DT1S") * Literal::make_typed_from_value<datatypes::xsd::Double>(std::numeric_limits<double>::infinity())).null());

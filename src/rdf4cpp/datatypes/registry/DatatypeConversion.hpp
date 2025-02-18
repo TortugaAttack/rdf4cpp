@@ -17,6 +17,14 @@ namespace rdf4cpp::datatypes::registry {
 
 namespace conversion_detail {
 
+// require Property<A> <-> Property<B>
+#define RDF4CPP_DETAIL_BIDIRECTIONAL_PRESERVE_PROPERTY_RULE(Property, A, B) \
+    ((Property<A> && Property<B>) || (!Property<A> && !Property<B>))
+
+// require Property<A> -> Property<B>
+#define RDF4CPP_DETAIL_UNIDIRECTIONAL_PRESERVE_PROPERTY_RULE(Property, A, B) \
+    (!Property<A> || Property<B>)
+
 /**
  * Generate a linear conversion table
  * consisting only of one type of conversion,
@@ -67,22 +75,29 @@ consteval ConversionLayer auto make_conversion_layer_impl() {
         // This is because the numeric operations assume that if any of the operands is not numeric
         // the common type and the result type will also not be numeric to allow for an early return
         // without doing the actual conversion.
-        static_assert((NumericLiteralDatatype<Type> && NumericLiteralDatatype<typename next::template converted<0>>) || (!NumericLiteralDatatype<Type> && !NumericLiteralDatatype<typename next::template converted<0>>),
+        static_assert(RDF4CPP_DETAIL_BIDIRECTIONAL_PRESERVE_PROPERTY_RULE(NumericLiteralDatatype, Type, typename next::template converted<0>),
                       "conversion must preserve numericity");
 
         // conversion cannot downgrade impl-numericity class back to stub-numericity, so:
         // NumericImplLiteralDatatype<Type> -> NumericImplLiteralDatatype<typename next::converted>
         // This is required so that skipping to a numeric-impl in the hierarchy will guarantee
         // that we can only find numeric impls from now on, which ensures the search algorithm can be single pass.
-        static_assert(!NumericImplLiteralDatatype<Type> || NumericImplLiteralDatatype<typename next::template converted<0>>,
+        static_assert(RDF4CPP_DETAIL_UNIDIRECTIONAL_PRESERVE_PROPERTY_RULE(NumericImplLiteralDatatype, Type, typename next::template converted<0>),
                       "conversion must preserve impl-numericity");
 
         // conversion must preserve comparability, so:
         // ComparableLiteralDatatype<Type> <-> ComparableLiteralDatatype<typename next::converted>
         // The reasoning is the same as in the static_assert for numericity.
-        static_assert((ComparableLiteralDatatype<Type> && ComparableLiteralDatatype<typename next::template converted<0>>) || (!ComparableLiteralDatatype<Type> && !ComparableLiteralDatatype<typename next::template converted<0>>),
+        static_assert(RDF4CPP_DETAIL_BIDIRECTIONAL_PRESERVE_PROPERTY_RULE(ComparableLiteralDatatype, Type, typename next::template converted<0>),
                       "conversion must preserve comparability");
 
+        // conversion must preserve duration
+        static_assert(RDF4CPP_DETAIL_BIDIRECTIONAL_PRESERVE_PROPERTY_RULE(DurationLiteralDatatype, Type, typename next::template converted<0>),
+                      "conversion must preserve duration");
+
+        // conversion must preserve timepoint
+        static_assert(RDF4CPP_DETAIL_UNIDIRECTIONAL_PRESERVE_PROPERTY_RULE(TimepointLiteralDatatype, Type, typename next::template converted<0>),
+                      "conversion must preserve timepoint");
 
         if constexpr (BaseType::identifier == Type::identifier) {
             auto const additional_conversions = util::type_list_generate<next::max_specialization_ix + 1>([]<size_t ix> {
