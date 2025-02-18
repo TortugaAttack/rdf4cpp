@@ -1444,7 +1444,7 @@ std::optional<Literal> Literal::run_binop_cast_rhs(Literal const &other,
         return std::nullopt;
     }
 
-    auto other_duration = other_converter->inverted_convert_lhs(other_converter->convert_rhs(other.value()));
+    auto other_duration = other_converter->inverted_convert_rhs(other_converter->convert_lhs(other.value()));
     if (!other_duration.has_value()) {
         return Literal{};
     }

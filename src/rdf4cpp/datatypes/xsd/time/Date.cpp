@@ -104,9 +104,7 @@ template<>
 nonstd::expected<capabilities::Timepoint<xsd_date>::cpp_type, DynamicError>
 capabilities::Timepoint<xsd_date>::timepoint_duration_add(cpp_type const &tp, timepoint_duration_operand_cpp_type const &dur) noexcept {
     auto const super_tp = Subtype<xsd_date>::into_supertype(tp);
-    auto const super_dur = Subtype<timepoint_duration_operand_type::identifier>::into_supertype(dur);
-
-    auto res_tp = util::add_duration_to_date_time(super_tp.first, super_dur);
+    auto res_tp = util::add_duration_to_date_time(super_tp.first, dur);
 
     auto [date, _] = rdf4cpp::util::deconstruct_timepoint(res_tp);
     return std::make_pair(date, super_tp.second);
@@ -116,9 +114,7 @@ template<>
 nonstd::expected<capabilities::Timepoint<xsd_date>::cpp_type, DynamicError>
 capabilities::Timepoint<xsd_date>::timepoint_duration_sub(cpp_type const &tp, timepoint_duration_operand_cpp_type const &dur) noexcept {
     auto const super_tp = Subtype<xsd_date>::into_supertype(tp);
-    auto const super_dur = Subtype<timepoint_duration_operand_type::identifier>::into_supertype(dur);
-
-    auto res_tp = util::add_duration_to_date_time(super_tp.first, std::make_pair(-super_dur.first, -super_dur.second));
+    auto res_tp = util::add_duration_to_date_time(super_tp.first, std::make_pair(-dur.first, -dur.second));
 
     auto [date, _] = rdf4cpp::util::deconstruct_timepoint(res_tp);
     return std::make_pair(date, super_tp.second);

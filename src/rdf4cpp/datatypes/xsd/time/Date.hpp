@@ -23,7 +23,7 @@ struct DatatypeSupertypeMapping<xsd_date> {
 };
 template<>
 struct DatatypeTimepointDurationOperandMapping<xsd_date> {
-    using duration_type = xsd::DayTimeDuration;
+    using duration_type = xsd::Duration;
 };
 template<>
 struct DatatypeTimepointSubResultMapping<xsd_date> {

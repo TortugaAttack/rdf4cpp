@@ -784,10 +784,10 @@ template<datatypes::TimepointLiteralDatatype LiteralDatatype_t>
 DatatypeRegistry::TimepointOps DatatypeRegistry::make_timepoint_ops() noexcept {
     return TimepointOps{
         .timepoint_duration_type = []() -> DatatypeIDView {
-            if constexpr (FixedIdLiteralDatatype<LiteralDatatype_t>) {
-                return DatatypeIDView{LiteralDatatype_t::fixed_id};
+            if constexpr (FixedIdLiteralDatatype<typename LiteralDatatype_t::timepoint_duration_operand_type>) {
+                return DatatypeIDView{LiteralDatatype_t::timepoint_duration_operand_type::fixed_id};
             } else {
-                return DatatypeIDView{LiteralDatatype_t::identifier};
+                return DatatypeIDView{LiteralDatatype_t::timepoint_duration_operand_type::identifier};
             }
         }(),
         .timepoint_sub = [](std::any const &lhs, std::any const &rhs) noexcept -> OpResult {
@@ -820,10 +820,10 @@ template<datatypes::DurationLiteralDatatype LiteralDatatype_t>
 DatatypeRegistry::DurationOps DatatypeRegistry::make_duration_ops() noexcept {
     return DurationOps{
         .duration_scalar_type = []() noexcept -> DatatypeIDView {
-            if constexpr (FixedIdLiteralDatatype<LiteralDatatype_t>) {
-                return DatatypeIDView{LiteralDatatype_t::fixed_id};
+            if constexpr (FixedIdLiteralDatatype<typename LiteralDatatype_t::duration_scalar_type>) {
+                return DatatypeIDView{LiteralDatatype_t::duration_scalar_type::fixed_id};
             } else {
-                return DatatypeIDView{LiteralDatatype_t::identifier};
+                return DatatypeIDView{LiteralDatatype_t::duration_scalar_type::identifier};
             }
         }(),
         .duration_add = [](std::any const &lhs, std::any const &rhs) noexcept -> OpResult {
