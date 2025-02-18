@@ -179,8 +179,9 @@ TEST_CASE("basic ntriple") {
     // reordered because graph is unordered_map
     CHECK_EQ(res,
             "<http://ex/sub> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> \"5\"^^<http://www.w3.org/2001/XMLSchema#int> .\n"
+            "<http://ex/sub> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://ex/obj> .\n"
             "<http://ex/sub> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> \"7\"^^<http://www.w3.org/2001/XMLSchema#int> .\n"
-            "<http://ex/sub> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://ex/obj> .\n");
+            );
 }
 
 TEST_CASE("basic nquad") {
@@ -225,8 +226,8 @@ TEST_CASE("basic turtle") {
              "@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .\n"
              "@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .\n"
              "<http://ex/sub> a \"5\"^^xsd:int ,\n"
-             "\"7\"^^xsd:int ,\n"
-             "<http://ex/obj> .\n");
+             "<http://ex/obj> ,\n"
+             "\"7\"^^xsd:int .\n");
 }
 
 TEST_CASE("basic trig") {
