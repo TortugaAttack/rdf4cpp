@@ -69,13 +69,13 @@ rdf4cpp::TimePoint date_to_tp(YearMonthDay const &d) noexcept {
 
 template<>
 template<>
-capabilities::Subtype<xsd_date>::super_cpp_type<0> capabilities::Subtype<xsd_date>::into_supertype<0>(cpp_type const &value) noexcept {
+capabilities::Promotable<xsd_date>::promoted_cpp_type<0> capabilities::Promotable<xsd_date>::promote<0>(cpp_type const &value) noexcept {
     return std::make_pair(date_to_tp(value.first), value.second);
 }
 
 template<>
 template<>
-nonstd::expected<capabilities::Subtype<xsd_date>::cpp_type, DynamicError> capabilities::Subtype<xsd_date>::from_supertype<0>(super_cpp_type<0> const &value) noexcept {
+nonstd::expected<capabilities::Promotable<xsd_date>::cpp_type, DynamicError> capabilities::Promotable<xsd_date>::demote<0>(promoted_cpp_type<0> const &value) noexcept {
     return std::make_pair(YearMonthDay{std::chrono::floor<std::chrono::days>(value.first)}, value.second);
 }
 
@@ -87,8 +87,8 @@ std::partial_ordering capabilities::Comparable<xsd_date>::compare(cpp_type const
 template<>
 nonstd::expected<capabilities::Timepoint<xsd_date>::timepoint_sub_result_cpp_type, DynamicError>
 capabilities::Timepoint<xsd_date>::timepoint_sub(cpp_type const &lhs, cpp_type const &rhs) noexcept {
-    auto const super_lhs = Subtype<xsd_date>::into_supertype(lhs);
-    auto const super_rhs = Subtype<xsd_date>::into_supertype(rhs);
+    auto const super_lhs = Promotable<xsd_date>::promote(lhs);
+    auto const super_rhs = Promotable<xsd_date>::promote(rhs);
 
     ZonedTime const this_tp{super_lhs.second.has_value() ? *super_lhs.second : Timezone{},
                             super_lhs.first};
@@ -103,7 +103,7 @@ capabilities::Timepoint<xsd_date>::timepoint_sub(cpp_type const &lhs, cpp_type c
 template<>
 nonstd::expected<capabilities::Timepoint<xsd_date>::cpp_type, DynamicError>
 capabilities::Timepoint<xsd_date>::timepoint_duration_add(cpp_type const &tp, timepoint_duration_operand_cpp_type const &dur) noexcept {
-    auto const super_tp = Subtype<xsd_date>::into_supertype(tp);
+    auto const super_tp = Promotable<xsd_date>::promote(tp);
     auto res_tp = util::add_duration_to_date_time(super_tp.first, dur);
 
     auto [date, _] = rdf4cpp::util::deconstruct_timepoint(res_tp);
@@ -113,7 +113,7 @@ capabilities::Timepoint<xsd_date>::timepoint_duration_add(cpp_type const &tp, ti
 template<>
 nonstd::expected<capabilities::Timepoint<xsd_date>::cpp_type, DynamicError>
 capabilities::Timepoint<xsd_date>::timepoint_duration_sub(cpp_type const &tp, timepoint_duration_operand_cpp_type const &dur) noexcept {
-    auto const super_tp = Subtype<xsd_date>::into_supertype(tp);
+    auto const super_tp = Promotable<xsd_date>::promote(tp);
     auto res_tp = util::add_duration_to_date_time(super_tp.first, std::make_pair(-dur.first, -dur.second));
 
     auto [date, _] = rdf4cpp::util::deconstruct_timepoint(res_tp);
@@ -127,5 +127,5 @@ template struct LiteralDatatypeImpl<xsd_date,
                                     capabilities::Comparable,
                                     capabilities::FixedId,
                                     capabilities::Inlineable,
-                                    capabilities::Subtype>;
+                                    capabilities::Promotable>;
 }  // namespace rdf4cpp::datatypes::registry

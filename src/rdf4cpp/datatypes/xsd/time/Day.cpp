@@ -63,13 +63,13 @@ capabilities::Inlineable<xsd_gDay>::cpp_type capabilities::Inlineable<xsd_gDay>:
 
 template<>
 template<>
-capabilities::Subtype<xsd_gDay>::super_cpp_type<0> capabilities::Subtype<xsd_gDay>::into_supertype<0>(cpp_type const &value) noexcept {
+capabilities::Promotable<xsd_gDay>::promoted_cpp_type<0> capabilities::Promotable<xsd_gDay>::promote<0>(cpp_type const &value) noexcept {
     return std::make_pair(YearMonthDay{rdf4cpp::util::time_point_replacement_date.year(), rdf4cpp::util::time_point_replacement_date.month(), value.first}, value.second);
 }
 
 template<>
 template<>
-nonstd::expected<capabilities::Subtype<xsd_gDay>::cpp_type, DynamicError> capabilities::Subtype<xsd_gDay>::from_supertype<0>(super_cpp_type<0> const &value) noexcept {
+nonstd::expected<capabilities::Promotable<xsd_gDay>::cpp_type, DynamicError> capabilities::Promotable<xsd_gDay>::demote<0>(promoted_cpp_type<0> const &value) noexcept {
     return std::make_pair(value.first.day(), value.second);
 }
 #endif
@@ -78,6 +78,6 @@ template struct LiteralDatatypeImpl<xsd_gDay,
                                     capabilities::Comparable,
                                     capabilities::FixedId,
                                     capabilities::Inlineable,
-                                    capabilities::Subtype>;
+                                    capabilities::Promotable>;
 
 }  // namespace rdf4cpp::datatypes::registry

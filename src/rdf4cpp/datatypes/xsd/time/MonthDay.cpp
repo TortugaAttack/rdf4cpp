@@ -69,13 +69,13 @@ std::partial_ordering capabilities::Comparable<xsd_gMonthDay>::compare(cpp_type 
 
 template<>
 template<>
-capabilities::Subtype<xsd_gMonthDay>::super_cpp_type<0> capabilities::Subtype<xsd_gMonthDay>::into_supertype<0>(cpp_type const &value) noexcept {
+capabilities::Promotable<xsd_gMonthDay>::promoted_cpp_type<0> capabilities::Promotable<xsd_gMonthDay>::promote<0>(cpp_type const &value) noexcept {
     return std::make_pair(YearMonthDay{rdf4cpp::util::time_point_replacement_date.year(), value.first.month(), value.first.day()}, value.second);
 }
 
 template<>
 template<>
-nonstd::expected<capabilities::Subtype<xsd_gMonthDay>::cpp_type, DynamicError> capabilities::Subtype<xsd_gMonthDay>::from_supertype<0>(super_cpp_type<0> const &value) noexcept {
+nonstd::expected<capabilities::Promotable<xsd_gMonthDay>::cpp_type, DynamicError> capabilities::Promotable<xsd_gMonthDay>::demote<0>(promoted_cpp_type<0> const &value) noexcept {
     return std::make_pair(value.first.month() / value.first.day(), value.second);
 }
 #endif
@@ -84,6 +84,6 @@ template struct LiteralDatatypeImpl<xsd_gMonthDay,
                                     capabilities::Comparable,
                                     capabilities::FixedId,
                                     capabilities::Inlineable,
-                                    capabilities::Subtype>;
+                                    capabilities::Promotable>;
 
 }  // namespace rdf4cpp::datatypes::registry
