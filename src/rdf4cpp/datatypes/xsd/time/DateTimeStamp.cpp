@@ -127,15 +127,7 @@ nonstd::expected<capabilities::Timepoint<xsd_dateTimeStamp>::timepoint_sub_resul
 capabilities::Timepoint<xsd_dateTimeStamp>::timepoint_sub(cpp_type const &lhs, cpp_type const &rhs) noexcept {
     auto const super_lhs = Subtype<xsd_dateTimeStamp>::into_supertype(lhs);
     auto const super_rhs = Subtype<xsd_dateTimeStamp>::into_supertype(rhs);
-
-    ZonedTime const this_tp{super_lhs.second.has_value() ? *super_lhs.second : Timezone{},
-                            super_lhs.first};
-
-    ZonedTime const other_tp{super_rhs.second.has_value() ? *super_rhs.second : Timezone{},
-                             super_rhs.first};
-
-    auto d = this_tp.get_sys_time() - other_tp.get_sys_time();
-    return std::chrono::duration_cast<std::chrono::nanoseconds>(d);
+    return util::timepoint_sub(super_lhs, super_rhs);
 }
 
 template<>
