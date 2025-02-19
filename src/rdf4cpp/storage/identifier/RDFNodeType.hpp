@@ -11,10 +11,10 @@ namespace rdf4cpp::storage::identifier {
  * The ordering BNode, IRI, Literal is the same as in SPARQL operator<.
  */
 enum struct RDFNodeType : uint8_t {
-    BNode = 0,
-    IRI,
-    Literal,
-    Variable
+    BNode = 0b00,
+    IRI = 0b01,
+    Literal = 0b10,
+    Variable = 0b11,
 };
 
 constexpr std::string_view to_string_view(RDFNodeType const node_type) noexcept {

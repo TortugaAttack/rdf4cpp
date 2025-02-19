@@ -8,6 +8,8 @@
 #include <rdf4cpp/datatypes/registry/LiteralDatatypeImpl.hpp>
 #include <rdf4cpp/Timezone.hpp>
 #include <rdf4cpp/datatypes/xsd/time/Duration.hpp>
+#include <rdf4cpp/datatypes/xsd/Double.hpp>
+#include <rdf4cpp/datatypes/xsd/Decimal.hpp>
 
 namespace rdf4cpp::datatypes::registry {
 
@@ -20,7 +22,14 @@ template<>
 struct DatatypeSupertypeMapping<xsd_yearMonthDuration> {
     using supertype = xsd::Duration;
 };
-
+template<>
+struct DatatypeDurationScalarMapping<xsd_yearMonthDuration> {
+    using scalar_type = xsd::Double;
+};
+template<>
+struct DatatypeDurationDivResultMapping<xsd_yearMonthDuration> {
+    using op_result = xsd::Decimal;
+};
 
 template<>
 capabilities::Default<xsd_yearMonthDuration>::cpp_type capabilities::Default<xsd_yearMonthDuration>::from_string(std::string_view s);
@@ -43,10 +52,33 @@ capabilities::Subtype<xsd_yearMonthDuration>::super_cpp_type<0> capabilities::Su
 
 template<>
 template<>
-nonstd::expected<capabilities::Subtype<xsd_yearMonthDuration>::cpp_type, DynamicError> capabilities::Subtype<xsd_yearMonthDuration>::from_supertype<0>(super_cpp_type<0> const &value) noexcept;
+nonstd::expected<capabilities::Subtype<xsd_yearMonthDuration>::cpp_type, DynamicError>
+capabilities::Subtype<xsd_yearMonthDuration>::from_supertype<0>(super_cpp_type<0> const &value) noexcept;
+
+template<>
+nonstd::expected<capabilities::Duration<xsd_yearMonthDuration>::cpp_type, DynamicError>
+capabilities::Duration<xsd_yearMonthDuration>::duration_add(cpp_type const &lhs, cpp_type const &rhs) noexcept;
+
+template<>
+nonstd::expected<capabilities::Duration<xsd_yearMonthDuration>::cpp_type, DynamicError>
+capabilities::Duration<xsd_yearMonthDuration>::duration_sub(cpp_type const &lhs, cpp_type const &rhs) noexcept;
+
+template<>
+nonstd::expected<capabilities::Duration<xsd_yearMonthDuration>::duration_div_result_cpp_type, DynamicError>
+capabilities::Duration<xsd_yearMonthDuration>::duration_div(cpp_type const &lhs, cpp_type const &rhs) noexcept;
+
+template<>
+nonstd::expected<capabilities::Duration<xsd_yearMonthDuration>::cpp_type, DynamicError>
+capabilities::Duration<xsd_yearMonthDuration>::duration_scalar_mul(cpp_type const &dur, duration_scalar_cpp_type const &scalar) noexcept;
+
+template<>
+nonstd::expected<capabilities::Duration<xsd_yearMonthDuration>::cpp_type, DynamicError>
+capabilities::Duration<xsd_yearMonthDuration>::duration_scalar_div(cpp_type const &dur, duration_scalar_cpp_type const &scalar) noexcept;
+
 #endif
 
 extern template struct LiteralDatatypeImpl<xsd_yearMonthDuration,
+                                           capabilities::Duration,
                                            capabilities::Comparable,
                                            capabilities::FixedId,
                                            capabilities::Inlineable,
@@ -57,6 +89,7 @@ extern template struct LiteralDatatypeImpl<xsd_yearMonthDuration,
 namespace rdf4cpp::datatypes::xsd {
 
 struct YearMonthDuration : registry::LiteralDatatypeImpl<registry::xsd_yearMonthDuration,
+                                                         registry::capabilities::Duration,
                                                          registry::capabilities::Comparable,
                                                          registry::capabilities::FixedId,
                                                          registry::capabilities::Inlineable,

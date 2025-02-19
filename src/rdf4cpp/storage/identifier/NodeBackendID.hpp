@@ -9,6 +9,7 @@ namespace rdf4cpp::storage::identifier {
 struct alignas(uint64_t) NodeBackendID {
     using underlying_type = uint64_t;
     static constexpr size_t width = 64;
+    static constexpr size_t tagging_bits_width = 13;
 
     static std::pair<NodeBackendID, std::string_view> const default_graph_iri;
     static std::pair<NodeBackendID, std::string_view> const xsd_string_iri;
@@ -19,9 +20,9 @@ private:
         NodeID node_id_;
         RDFNodeType node_type_: 2;
         uint8_t inlined_: 1;
-        uint16_t free_tagging_bits_: 13;
+        uint16_t free_tagging_bits_: tagging_bits_width;
 
-        static_assert(NodeID::width + 2 + 1 + 13 == width);
+        static_assert(NodeID::width + 2 + 1 + tagging_bits_width == width);
     };
 
     union __attribute__((packed)) {
@@ -46,7 +47,7 @@ public:
                   RDFNodeType const node_type,
                   bool const inlined = false,
                   uint16_t const tagging_bits = 0) noexcept : parts_{node_id, node_type, inlined, tagging_bits} {
-        assert(tagging_bits < (1 << 13));
+        assert(tagging_bits < (1 << tagging_bits_width));
     }
 
     /**
@@ -94,7 +95,7 @@ public:
      * @return
      */
     [[nodiscard]] constexpr bool null() const noexcept {
-        return parts_.node_id_.null();
+        return node_id().null();
     }
 
     /**
@@ -125,7 +126,7 @@ public:
      * @param new_value
      */
     constexpr void set_free_tagging_bits(uint16_t new_value) noexcept {
-        assert(new_value < (1 << 13));
+        assert(new_value < (1 << tagging_bits_width));
         parts_.free_tagging_bits_ = new_value;
     }
 

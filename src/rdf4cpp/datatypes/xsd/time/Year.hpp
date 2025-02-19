@@ -17,8 +17,8 @@ struct DatatypeMapping<xsd_gYear> {
     using cpp_datatype = std::pair<rdf4cpp::Year, rdf4cpp::OptionalTimezone>;
 };
 template<>
-struct DatatypeSupertypeMapping<xsd_gYear> {
-    using supertype = xsd::Date;
+struct DatatypePromotionMapping<xsd_gYear> {
+    using promoted = xsd::Date;
 };
 
 
@@ -41,18 +41,18 @@ capabilities::Inlineable<xsd_gYear>::cpp_type capabilities::Inlineable<xsd_gYear
 
 template<>
 template<>
-capabilities::Subtype<xsd_gYear>::super_cpp_type<0> capabilities::Subtype<xsd_gYear>::into_supertype<0>(cpp_type const &value) noexcept;
+capabilities::Promotable<xsd_gYear>::promoted_cpp_type<0> capabilities::Promotable<xsd_gYear>::promote<0>(cpp_type const &value) noexcept;
 
 template<>
 template<>
-nonstd::expected<capabilities::Subtype<xsd_gYear>::cpp_type, DynamicError> capabilities::Subtype<xsd_gYear>::from_supertype<0>(super_cpp_type<0> const &value) noexcept;
+nonstd::expected<capabilities::Promotable<xsd_gYear>::cpp_type, DynamicError> capabilities::Promotable<xsd_gYear>::demote<0>(promoted_cpp_type<0> const &value) noexcept;
 #endif
 
 extern template struct LiteralDatatypeImpl<xsd_gYear,
                                            capabilities::Comparable,
                                            capabilities::FixedId,
                                            capabilities::Inlineable,
-                                           capabilities::Subtype>;
+                                           capabilities::Promotable>;
 
 }
 
@@ -62,7 +62,7 @@ struct GYear : registry::LiteralDatatypeImpl<registry::xsd_gYear,
                                              registry::capabilities::Comparable,
                                              registry::capabilities::FixedId,
                                              registry::capabilities::Inlineable,
-                                             registry::capabilities::Subtype> {};
+                                             registry::capabilities::Promotable> {};
 
 }  // namespace rdf4cpp::datatypes::xsd
 

@@ -17,8 +17,8 @@ struct DatatypeMapping<xsd_gMonth> {
     using cpp_datatype = std::pair<std::chrono::month, rdf4cpp::OptionalTimezone>;
 };
 template<>
-struct DatatypeSupertypeMapping<xsd_gMonth> {
-    using supertype = xsd::Date;
+struct DatatypePromotionMapping<xsd_gMonth> {
+    using promoted = xsd::Date;
 };
 
 
@@ -41,18 +41,18 @@ capabilities::Inlineable<xsd_gMonth>::cpp_type capabilities::Inlineable<xsd_gMon
 
 template<>
 template<>
-capabilities::Subtype<xsd_gMonth>::super_cpp_type<0> capabilities::Subtype<xsd_gMonth>::into_supertype<0>(cpp_type const &value) noexcept;
+capabilities::Promotable<xsd_gMonth>::promoted_cpp_type<0> capabilities::Promotable<xsd_gMonth>::promote<0>(cpp_type const &value) noexcept;
 
 template<>
 template<>
-nonstd::expected<capabilities::Subtype<xsd_gMonth>::cpp_type, DynamicError> capabilities::Subtype<xsd_gMonth>::from_supertype<0>(super_cpp_type<0> const &value) noexcept;
+nonstd::expected<capabilities::Promotable<xsd_gMonth>::cpp_type, DynamicError> capabilities::Promotable<xsd_gMonth>::demote<0>(promoted_cpp_type<0> const &value) noexcept;
 #endif
 
 extern template struct LiteralDatatypeImpl<xsd_gMonth,
                                            capabilities::Comparable,
                                            capabilities::FixedId,
                                            capabilities::Inlineable,
-                                           capabilities::Subtype>;
+                                           capabilities::Promotable>;
 
 }
 
@@ -62,7 +62,7 @@ struct GMonth : registry::LiteralDatatypeImpl<registry::xsd_gMonth,
                                               registry::capabilities::Comparable,
                                               registry::capabilities::FixedId,
                                               registry::capabilities::Inlineable,
-                                              registry::capabilities::Subtype> {};
+                                              registry::capabilities::Promotable> {};
 
 }  // namespace rdf4cpp::datatypes::xsd
 
