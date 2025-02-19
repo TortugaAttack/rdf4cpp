@@ -144,9 +144,70 @@ nonstd::expected<capabilities::Subtype<xsd_dayTimeDuration>::cpp_type, DynamicEr
         return value.second;
     return nonstd::make_unexpected(DynamicError::InvalidValueForCast);
 }
+
+template<>
+nonstd::expected<capabilities::Duration<xsd_dayTimeDuration>::cpp_type, DynamicError>
+capabilities::Duration<xsd_dayTimeDuration>::duration_add(cpp_type const &lhs, cpp_type const &rhs) noexcept {
+    auto r = util::to_checked(lhs) + util::to_checked(rhs);
+    if (r.count().is_invalid()) {
+        return nonstd::make_unexpected(DynamicError::OverOrUnderFlow);
+    }
+
+    return util::from_checked(r);
+}
+
+template<>
+nonstd::expected<capabilities::Duration<xsd_dayTimeDuration>::cpp_type, DynamicError>
+capabilities::Duration<xsd_dayTimeDuration>::duration_sub(cpp_type const &lhs, cpp_type const &rhs) noexcept {
+    auto r = util::to_checked(lhs) - util::to_checked(rhs);
+    if (r.count().is_invalid()) {
+        return nonstd::make_unexpected(DynamicError::OverOrUnderFlow);
+    }
+
+    return util::from_checked(r);
+}
+
+template<>
+nonstd::expected<capabilities::Duration<xsd_dayTimeDuration>::duration_div_result_cpp_type, DynamicError>
+capabilities::Duration<xsd_dayTimeDuration>::duration_div(cpp_type const &lhs, cpp_type const &rhs) noexcept {
+    auto r = BigDecimal<>{lhs.count(), 0}.div_checked(BigDecimal<>{rhs.count(), 0}, 1000);
+    if (!r.has_value()) {
+        return nonstd::make_unexpected(DynamicError::DivideByZero);
+    }
+
+    return *r;
+}
+
+template<>
+nonstd::expected<capabilities::Duration<xsd_dayTimeDuration>::cpp_type, DynamicError>
+capabilities::Duration<xsd_dayTimeDuration>::duration_scalar_mul(cpp_type const &dur, duration_scalar_cpp_type const &scalar) noexcept {
+    auto r = std::round(static_cast<double>(dur.count()) * scalar);
+    if (!datatypes::registry::util::fits_into<int64_t>(r)) {
+        return nonstd::make_unexpected(DynamicError::OverOrUnderFlow);
+    }
+
+    return std::chrono::nanoseconds{static_cast<int64_t>(r)};
+}
+
+template<>
+nonstd::expected<capabilities::Duration<xsd_dayTimeDuration>::cpp_type, DynamicError>
+capabilities::Duration<xsd_dayTimeDuration>::duration_scalar_div(cpp_type const &dur, duration_scalar_cpp_type const &scalar) noexcept {
+    if (scalar == 0.0) {
+        return nonstd::make_unexpected(DynamicError::DivideByZero);
+    }
+
+    auto r = std::round(static_cast<double>(dur.count()) / scalar);
+    if (!datatypes::registry::util::fits_into<int64_t>(r)) {
+        return nonstd::make_unexpected(DynamicError::OverOrUnderFlow);
+    }
+
+    return std::chrono::nanoseconds{static_cast<int64_t>(r)};
+}
+
 #endif
 
 template struct LiteralDatatypeImpl<xsd_dayTimeDuration,
+                                    capabilities::Duration,
                                     capabilities::Comparable,
                                     capabilities::FixedId,
                                     capabilities::Inlineable,

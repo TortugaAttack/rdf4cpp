@@ -43,7 +43,7 @@ private:
      */
     template<typename OpSelect>
         requires std::is_nothrow_invocable_r_v<datatypes::registry::DatatypeRegistry::binop_fptr_t, OpSelect, datatypes::registry::DatatypeRegistry::NumericOpsImpl const &>
-    [[nodiscard]] Literal numeric_binop_impl(OpSelect op_select, Literal const &other, storage::DynNodeStoragePtr node_storage = keep_node_storage) const;
+    [[nodiscard]] Literal numeric_binop_impl(OpSelect op_select, Literal const &other, storage::DynNodeStoragePtr node_storage) const;
 
     /**
      * the implementation for all numeric, unary operations
@@ -55,7 +55,107 @@ private:
      */
     template<typename OpSelect>
         requires std::is_nothrow_invocable_r_v<datatypes::registry::DatatypeRegistry::unop_fptr_t, OpSelect, datatypes::registry::DatatypeRegistry::NumericOpsImpl const &>
-    [[nodiscard]] Literal numeric_unop_impl(OpSelect op_select, storage::DynNodeStoragePtr node_storage = keep_node_storage) const;
+    [[nodiscard]] Literal numeric_unop_impl(OpSelect op_select, storage::DynNodeStoragePtr node_storage) const;
+
+    /**
+     * Run a binary operation potentially involving casts to equalize the datatypes of the values
+     *
+     * @param other rhs of operation
+     * @param this_datatype `this->datatype_id()`
+     * @param this_entry datatype entry of this
+     * @param other_datatype `other.datatype_id()`
+     * @param other_entry datatype entry of other
+     * @param node_storage the node storage the resulting value will be placed in
+     * @param op function with signature `DatatypeRegistry::OpResult(DatatypeEntry const &equalized_entry, std::any const &equalized_lhs, std::any const &equalized_rhs)` to perform the operation
+     * @return
+     *  - nullopt if there is no conversion for *this and other
+     *  - null-literal if there was a conversion but some operation failed
+     *  - otherwise the result of the operation
+     */
+    template<typename Op>
+    [[nodiscard]] std::optional<Literal> run_binop(Literal const &other,
+                                                   datatypes::registry::DatatypeIDView const &this_datatype,
+                                                   datatypes::registry::DatatypeRegistry::DatatypeEntry const &this_entry,
+                                                   datatypes::registry::DatatypeIDView const &other_datatype,
+                                                   datatypes::registry::DatatypeRegistry::DatatypeEntry const &other_entry,
+                                                   storage::DynNodeStoragePtr node_storage,
+                                                   Op &&op) const;
+
+    /**
+     * Cast other to a desired type, then run a binary operation on the original value of *this and the casted value of other
+     *
+     * @param other rhs of the operation
+     * @param other_entry datatype entry of other
+     * @param other_target the target type other is supposed to be cast to
+     * @param node_storage node storage the resulting value will be placed in
+     * @param op function with signature `DatatypeRegistry::OpResult(std::any const &lhs_original, std::any const &rhs_casted)`
+     * @return
+     *  - nullopt if other could not be cast
+     *  - null-literal if other could be cast but the binary operation failed
+     *  - other the result of the operation
+     */
+    template<typename Op>
+    [[nodiscard]] std::optional<Literal> run_binop_cast_rhs(Literal const &other,
+                                                            datatypes::registry::DatatypeRegistry::DatatypeEntry const &other_entry,
+                                                            datatypes::registry::DatatypeIDView const &other_target,
+                                                            storage::DynNodeStoragePtr node_storage,
+                                                            Op &&op) const;
+
+    /**
+     * Try if this and other are chrono and addable, if yes add them. This implements:
+     *  - duration + duration
+     *  - timepoint + duration
+     *
+     * @param other rhs of addition
+     * @param node_storage node storage in which resulting node will be placed
+     * @return
+     *  - nullopt if this and other are not chrono-addable
+     *  - null-literal if they are chrono-addable but the operation failed
+     *  - other the result of the addition
+     */
+    [[nodiscard]] std::optional<Literal> chrono_add_impl(Literal const &other, storage::DynNodeStoragePtr node_storage) const;
+
+    /**
+     * Try if this and other are chrono and subtractable, if yes subtract them. This implements:
+     *  - duration - duration
+     *  - timepoint - timepoint
+     *  - timepoint - duration
+     *
+     * @param other rhs of subtraction
+     * @param node_storage node storage in which resulting node will be placed
+     * @return
+     *  - nullopt if this and other are not chrono-subtractable
+     *  - null-literal if they are chrono-subtractable but the operation failed
+     *  - other the result of the subtraction
+     */
+    [[nodiscard]] std::optional<Literal> chrono_sub_impl(Literal const &other, storage::DynNodeStoragePtr node_storage) const;
+
+    /**
+     * Try if this and other are chrono and multipliable, if yes multiply them. This implements:
+     *  - duration * numeric
+     *
+     * @param other rhs of multiplication
+     * @param node_storage node storage in which resulting node will be placed
+     * @return
+     *  - nullopt if this and other are not chrono-multipliable
+     *  - null-literal if they are chrono-multipliable but the operation failed
+     *  - other the result of the multiplication
+     */
+    [[nodiscard]] std::optional<Literal> chrono_mul_impl(Literal const &other, storage::DynNodeStoragePtr node_storage) const;
+
+    /**
+     * Try if this and other are chrono and dividable, if yes divide them. This implements:
+     *  - duration / duration
+     *  - duration / numeric
+     *
+     * @param other rhs of division
+     * @param node_storage node storage in which resulting node will be placed
+     * @return
+     *  - nullopt if this and other are not chrono-dividable
+     *  - null-literal if they are chrono-dividable but the operation failed
+     *  - other the result of the division
+     */
+    [[nodiscard]] std::optional<Literal> chrono_div_impl(Literal const &other, storage::DynNodeStoragePtr node_storage) const;
 
     /**
      * @brief the implementation of the value comparison function
@@ -86,9 +186,19 @@ private:
     [[nodiscard]] bool is_fixed() const noexcept;
 
     /**
-     * @return if the datatype of this is simultaneously fixed but not numeric
+     * @return true iff the datatype of this is simultaneously fixed but not numeric
      */
     [[nodiscard]] bool is_fixed_not_numeric() const noexcept;
+
+    /**
+     * @return true iff the datatype of this is simultaneously fixed but not a timepoint
+     */
+    [[nodiscard]] bool is_fixed_not_timepoint() const noexcept;
+
+    /**
+     * @return true iff the datatype of this is simultaneously fixed but not a duration
+     */
+    [[nodiscard]] bool is_fixed_not_duration() const noexcept;
 
     /**
      * @return if this datatype is either xsd:string or rdf:langString
@@ -707,53 +817,6 @@ public:
     }
 
     /**
-     * Tries to cast this literal to a literal of the given type and return the result without creating a Literal.
-     * Only considers casts from subtype to supertype.
-     *
-     * @return conversion result
-     */
-    template<datatypes::LiteralDatatype T>
-    requires (!std::same_as<T, datatypes::xsd::String>)
-    std::optional<typename T::cpp_type> cast_to_supertype_value() const noexcept {
-        using namespace datatypes::registry;
-        using namespace datatypes::xsd;
-
-        if (this->null()) {
-            return std::nullopt;
-        }
-
-        auto const this_dtid = this->datatype_id();
-        DatatypeIDView const target_dtid = T::datatype_id;
-
-        if (this_dtid == target_dtid) {
-            return this->value<T>();
-        }
-
-        auto const *target_e = DatatypeRegistry::get_entry(target_dtid);
-        if (target_e == nullptr) {
-            // target not registered
-            return std::nullopt;
-        }
-
-        auto const *this_e = DatatypeRegistry::get_entry(this_dtid);
-        if (this_e == nullptr) {
-            // this datatype not registered
-            return std::nullopt;
-        }
-
-        if (auto const common_conversion = DatatypeRegistry::get_common_type_conversion(this_e->conversion_table, target_e->conversion_table); common_conversion.has_value()) {
-            if (common_conversion->target_type_id != target_dtid) // the found conversion does require downcasting
-                return std::nullopt;
-
-            auto const target_value = common_conversion->convert_lhs(this->value());
-            return std::any_cast<typename T::cpp_type>(target_value);
-        }
-
-        // no conversion found
-        return std::nullopt;
-    }
-
-    /**
      * Returns the lexical from of this. The lexical form is the part of the identifier that encodes the value. So datatype and language_tag are not part of the lexical form.
      * \verbatim embed:rst:leading-asterisk
      * E.g. For `"abc"^^xsd::string` the lexical form is `abc`
@@ -933,7 +996,8 @@ public:
     bool is_iri() const noexcept = delete;
 
     [[nodiscard]] bool is_numeric() const noexcept;
-    [[nodiscard]] bool is_chrono() const noexcept;
+    [[nodiscard]] bool is_timepoint() const noexcept;
+    [[nodiscard]] bool is_duration() const noexcept;
 
     /**
      * The literal comparison function for SPARQL filters (FILTER).
