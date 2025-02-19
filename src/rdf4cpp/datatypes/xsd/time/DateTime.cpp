@@ -97,18 +97,7 @@ std::partial_ordering capabilities::Comparable<xsd_dateTime>::compare(cpp_type c
 template<>
 nonstd::expected<capabilities::Timepoint<xsd_dateTime>::timepoint_sub_result_cpp_type, DynamicError>
 capabilities::Timepoint<xsd_dateTime>::timepoint_sub(cpp_type const &lhs, cpp_type const &rhs) noexcept {
-    try {
-        ZonedTime const this_tp{lhs.second.has_value() ? *lhs.second : Timezone{},
-                                lhs.first};
-
-        ZonedTime const other_tp{rhs.second.has_value() ? *rhs.second : Timezone{},
-                                 rhs.first};
-
-        auto d = this_tp.get_sys_time() - other_tp.get_sys_time();
-        return std::chrono::duration_cast<std::chrono::nanoseconds>(d);
-    } catch (std::overflow_error const &) {
-        return nonstd::make_unexpected(DynamicError::OverOrUnderFlow);
-    }
+    return util::timepoint_sub(lhs, rhs);
 }
 
 template<>

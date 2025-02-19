@@ -89,15 +89,7 @@ nonstd::expected<capabilities::Timepoint<xsd_date>::timepoint_sub_result_cpp_typ
 capabilities::Timepoint<xsd_date>::timepoint_sub(cpp_type const &lhs, cpp_type const &rhs) noexcept {
     auto const super_lhs = Promotable<xsd_date>::promote(lhs);
     auto const super_rhs = Promotable<xsd_date>::promote(rhs);
-
-    ZonedTime const this_tp{super_lhs.second.has_value() ? *super_lhs.second : Timezone{},
-                            super_lhs.first};
-
-    ZonedTime const other_tp{super_rhs.second.has_value() ? *super_rhs.second : Timezone{},
-                             super_rhs.first};
-
-    auto d = this_tp.get_sys_time() - other_tp.get_sys_time();
-    return std::chrono::duration_cast<std::chrono::nanoseconds>(d);
+    return util::timepoint_sub(super_lhs, super_rhs);
 }
 
 template<>

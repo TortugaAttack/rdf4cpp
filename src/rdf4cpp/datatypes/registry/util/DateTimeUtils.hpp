@@ -203,6 +203,21 @@ inline TimePoint add_duration_to_date_time(TimePoint const &tp, std::pair<std::c
     return date;
 }
 
+inline nonstd::expected<std::chrono::nanoseconds, DynamicError> timepoint_sub(std::pair<TimePoint, OptionalTimezone> const &lhs, std::pair<TimePoint, OptionalTimezone> const &rhs) noexcept {
+    try {
+        ZonedTime const this_tp{lhs.second.has_value() ? *lhs.second : Timezone{},
+                                lhs.first};
+
+        ZonedTime const other_tp{rhs.second.has_value() ? *rhs.second : Timezone{},
+                                 rhs.first};
+
+        auto d = this_tp.get_sys_time() - other_tp.get_sys_time();
+        return std::chrono::duration_cast<std::chrono::nanoseconds>(d);
+    } catch (std::overflow_error const &) {
+        return nonstd::make_unexpected(DynamicError::OverOrUnderFlow);
+    }
+}
+
 static inline std::partial_ordering compare_time_points(const rdf4cpp::TimePoint& a, std::optional<rdf4cpp::Timezone> atz,
                                                         const rdf4cpp::TimePoint& b, std::optional<rdf4cpp::Timezone> btz) noexcept {
     auto apply_timezone = [](const rdf4cpp::TimePoint& t, rdf4cpp::Timezone tz) noexcept -> std::optional<rdf4cpp::TimePointSys> {

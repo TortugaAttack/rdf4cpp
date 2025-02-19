@@ -151,6 +151,9 @@ consteval ConversionLayer auto make_conversion_layer_impl() {
     }
 }
 
+#undef RDF4CPP_DETAIL_BIDIRECTIONAL_PRESERVE_PROPERTY_RULE
+#undef RDF4CPP_DETAIL_UNIDIRECTIONAL_PRESERVE_PROPERTY_RULE
+
 namespace adaptor {
 
 /**
