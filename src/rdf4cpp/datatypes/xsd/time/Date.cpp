@@ -87,29 +87,29 @@ std::partial_ordering capabilities::Comparable<xsd_date>::compare(cpp_type const
 template<>
 nonstd::expected<capabilities::Timepoint<xsd_date>::timepoint_sub_result_cpp_type, DynamicError>
 capabilities::Timepoint<xsd_date>::timepoint_sub(cpp_type const &lhs, cpp_type const &rhs) noexcept {
-    auto const super_lhs = Promotable<xsd_date>::promote(lhs);
-    auto const super_rhs = Promotable<xsd_date>::promote(rhs);
-    return util::timepoint_sub(super_lhs, super_rhs);
+    auto const prom_lhs = Promotable<xsd_date>::promote(lhs);
+    auto const prom_rhs = Promotable<xsd_date>::promote(rhs);
+    return util::timepoint_sub(prom_lhs, prom_rhs);
 }
 
 template<>
 nonstd::expected<capabilities::Timepoint<xsd_date>::cpp_type, DynamicError>
 capabilities::Timepoint<xsd_date>::timepoint_duration_add(cpp_type const &tp, timepoint_duration_operand_cpp_type const &dur) noexcept {
-    auto const super_tp = Promotable<xsd_date>::promote(tp);
-    auto res_tp = util::add_duration_to_date_time(super_tp.first, dur);
+    auto const prom_tp = Promotable<xsd_date>::promote(tp);
+    auto res_tp = util::add_duration_to_date_time(prom_tp.first, dur);
 
     auto [date, _] = rdf4cpp::util::deconstruct_timepoint(res_tp);
-    return std::make_pair(date, super_tp.second);
+    return std::make_pair(date, prom_tp.second);
 }
 
 template<>
 nonstd::expected<capabilities::Timepoint<xsd_date>::cpp_type, DynamicError>
 capabilities::Timepoint<xsd_date>::timepoint_duration_sub(cpp_type const &tp, timepoint_duration_operand_cpp_type const &dur) noexcept {
-    auto const super_tp = Promotable<xsd_date>::promote(tp);
-    auto res_tp = util::add_duration_to_date_time(super_tp.first, std::make_pair(-dur.first, -dur.second));
+    auto const prom_tp = Promotable<xsd_date>::promote(tp);
+    auto res_tp = util::add_duration_to_date_time(prom_tp.first, std::make_pair(-dur.first, -dur.second));
 
     auto [date, _] = rdf4cpp::util::deconstruct_timepoint(res_tp);
-    return std::make_pair(date, super_tp.second);
+    return std::make_pair(date, prom_tp.second);
 }
 
 #endif

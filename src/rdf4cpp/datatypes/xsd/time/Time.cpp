@@ -89,33 +89,33 @@ nonstd::expected<capabilities::Promotable<xsd_time>::cpp_type, DynamicError> cap
 template<>
 nonstd::expected<capabilities::Timepoint<xsd_time>::timepoint_sub_result_cpp_type, DynamicError>
 capabilities::Timepoint<xsd_time>::timepoint_sub(cpp_type const &lhs, cpp_type const &rhs) noexcept {
-    auto const super_lhs = Promotable<xsd_time>::promote(lhs);
-    auto const super_rhs = Promotable<xsd_time>::promote(rhs);
-    return util::timepoint_sub(super_lhs, super_rhs);
+    auto const prom_lhs = Promotable<xsd_time>::promote(lhs);
+    auto const prom_rhs = Promotable<xsd_time>::promote(rhs);
+    return util::timepoint_sub(prom_lhs, prom_rhs);
 }
 
 template<>
 nonstd::expected<capabilities::Timepoint<xsd_time>::cpp_type, DynamicError>
 capabilities::Timepoint<xsd_time>::timepoint_duration_add(cpp_type const &tp, timepoint_duration_operand_cpp_type const &dur) noexcept {
-    auto const super_tp = Promotable<xsd_time>::promote(tp);
+    auto const prom_tp = Promotable<xsd_time>::promote(tp);
     auto const super_dur = Subtype<timepoint_duration_operand_type::identifier>::into_supertype(dur);
 
-    auto ret_tp = util::add_duration_to_date_time(super_tp.first, super_dur);
+    auto ret_tp = util::add_duration_to_date_time(prom_tp.first, super_dur);
 
     auto [_, time] = rdf4cpp::util::deconstruct_timepoint(ret_tp);
-    return std::make_pair(std::chrono::duration_cast<std::chrono::nanoseconds>(time), super_tp.second);
+    return std::make_pair(std::chrono::duration_cast<std::chrono::nanoseconds>(time), prom_tp.second);
 }
 
 template<>
 nonstd::expected<capabilities::Timepoint<xsd_time>::cpp_type, DynamicError>
 capabilities::Timepoint<xsd_time>::timepoint_duration_sub(cpp_type const &tp, timepoint_duration_operand_cpp_type const &dur) noexcept {
-    auto const super_tp = Promotable<xsd_time>::promote(tp);
+    auto const prom_tp = Promotable<xsd_time>::promote(tp);
     auto const super_dur = Subtype<timepoint_duration_operand_type::identifier>::into_supertype(dur);
 
-    auto ret_tp = util::add_duration_to_date_time(super_tp.first, std::make_pair(-super_dur.first, -super_dur.second));
+    auto ret_tp = util::add_duration_to_date_time(prom_tp.first, std::make_pair(-super_dur.first, -super_dur.second));
 
     auto [_, time] = rdf4cpp::util::deconstruct_timepoint(ret_tp);
-    return std::make_pair(std::chrono::duration_cast<std::chrono::nanoseconds>(time), super_tp.second);
+    return std::make_pair(std::chrono::duration_cast<std::chrono::nanoseconds>(time), prom_tp.second);
 }
 
 #endif
