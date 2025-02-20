@@ -211,7 +211,7 @@ inline nonstd::expected<std::chrono::nanoseconds, DynamicError> timepoint_sub(st
         ZonedTime const other_tp{rhs.second.has_value() ? *rhs.second : Timezone{},
                                  rhs.first};
 
-        auto d = this_tp.get_sys_time() - other_tp.get_sys_time();
+        auto const d = this_tp.get_sys_time() - other_tp.get_sys_time();
         return std::chrono::duration_cast<std::chrono::nanoseconds>(d);
     } catch (std::overflow_error const &) {
         return nonstd::make_unexpected(DynamicError::OverOrUnderFlow);

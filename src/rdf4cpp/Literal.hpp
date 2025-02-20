@@ -186,17 +186,17 @@ private:
     [[nodiscard]] bool is_fixed() const noexcept;
 
     /**
-     * @return true iff the datatype of this is simultaneously fixed but not numeric
+     * @return true iff the datatype of this is fixed and not numeric
      */
     [[nodiscard]] bool is_fixed_not_numeric() const noexcept;
 
     /**
-     * @return true iff the datatype of this is simultaneously fixed but not a timepoint
+     * @return true iff the datatype of this is fixed and not a timepoint
      */
     [[nodiscard]] bool is_fixed_not_timepoint() const noexcept;
 
     /**
-     * @return true iff the datatype of this is simultaneously fixed but not a duration
+     * @return true iff the datatype of this is fixed and not a duration
      */
     [[nodiscard]] bool is_fixed_not_duration() const noexcept;
 

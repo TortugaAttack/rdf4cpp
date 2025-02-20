@@ -24,7 +24,7 @@ enum struct LiteralTypeTag : uint8_t {
 struct __attribute__((__packed__)) LiteralType {
     using underlying_type = uint8_t;
     static constexpr size_t width = 6;
-    static constexpr size_t numeric_tagging_bit_shift = 4;
+    static constexpr size_t numeric_tagging_bit_shift = 4; ///< the bit at which the LiteralTypeTag starts (its in the last 2 bits of this 6 bit type)
 
 private:
     uint8_t underlying_: width;
