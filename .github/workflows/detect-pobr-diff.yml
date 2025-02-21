@@ -11,7 +11,7 @@ jobs:
     uses: dice-group/cpp-conan-release-reusable-workflow/.github/workflows/abi-diff.yml@main
     with:
       os: ubuntu-22.04
-      compiler: clang-16
+      compiler: clang-17
       cmake-version: 3.24.0
       conan-version: 2.3.1
       base-branch: ${{ github.base_ref }}
