@@ -18,9 +18,18 @@ struct DatatypeMapping<xsd_date> {
     using cpp_datatype = std::pair<YearMonthDay, rdf4cpp::OptionalTimezone>;
 };
 template<>
-struct DatatypeSupertypeMapping<xsd_date> {
-    using supertype = xsd::DateTime;
+struct DatatypePromotionMapping<xsd_date> {
+    using promoted = xsd::DateTime;
 };
+template<>
+struct DatatypeTimepointDurationOperandMapping<xsd_date> {
+    using duration_type = xsd::Duration;
+};
+template<>
+struct DatatypeTimepointSubResultMapping<xsd_date> {
+    using op_result = xsd::DayTimeDuration;
+};
+
 
 template<>
 capabilities::Default<xsd_date>::cpp_type capabilities::Default<xsd_date>::from_string(std::string_view s);
@@ -40,28 +49,43 @@ capabilities::Inlineable<xsd_date>::cpp_type capabilities::Inlineable<xsd_date>:
 
 template<>
 template<>
-capabilities::Subtype<xsd_date>::super_cpp_type<0> capabilities::Subtype<xsd_date>::into_supertype<0>(cpp_type const &value) noexcept;
+capabilities::Promotable<xsd_date>::promoted_cpp_type<0> capabilities::Promotable<xsd_date>::promote<0>(cpp_type const &value) noexcept;
 
 template<>
 template<>
-nonstd::expected<capabilities::Subtype<xsd_date>::cpp_type, DynamicError> capabilities::Subtype<xsd_date>::from_supertype<0>(super_cpp_type<0> const &value) noexcept;
+nonstd::expected<capabilities::Promotable<xsd_date>::cpp_type, DynamicError> capabilities::Promotable<xsd_date>::demote<0>(promoted_cpp_type<0> const &value) noexcept;
+
+template<>
+nonstd::expected<capabilities::Timepoint<xsd_date>::timepoint_sub_result_cpp_type, DynamicError>
+capabilities::Timepoint<xsd_date>::timepoint_sub(cpp_type const &lhs, cpp_type const &rhs) noexcept;
+
+template<>
+nonstd::expected<capabilities::Timepoint<xsd_date>::cpp_type, DynamicError>
+capabilities::Timepoint<xsd_date>::timepoint_duration_add(cpp_type const &tp, timepoint_duration_operand_cpp_type const &dur) noexcept;
+
+template<>
+nonstd::expected<capabilities::Timepoint<xsd_date>::cpp_type, DynamicError>
+capabilities::Timepoint<xsd_date>::timepoint_duration_sub(cpp_type const &tp, timepoint_duration_operand_cpp_type const &dur) noexcept;
+
 #endif
 
 extern template struct LiteralDatatypeImpl<xsd_date,
+                                           capabilities::Timepoint,
                                            capabilities::Comparable,
                                            capabilities::FixedId,
                                            capabilities::Inlineable,
-                                           capabilities::Subtype>;
+                                           capabilities::Promotable>;
 
 }  // namespace rdf4cpp::datatypes::registry
 
 namespace rdf4cpp::datatypes::xsd {
 
 struct Date : registry::LiteralDatatypeImpl<registry::xsd_date,
+                                            registry::capabilities::Timepoint,
                                             registry::capabilities::Comparable,
                                             registry::capabilities::FixedId,
                                             registry::capabilities::Inlineable,
-                                            registry::capabilities::Subtype> {};
+                                            registry::capabilities::Promotable> {};
 
 }  // namespace rdf4cpp::datatypes::xsd
 

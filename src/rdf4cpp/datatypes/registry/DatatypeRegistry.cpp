@@ -99,6 +99,42 @@ DatatypeRegistry::NumericOps const *DatatypeRegistry::get_numerical_ops(Datatype
     return nullptr;
 }
 
+DatatypeRegistry::TimepointOps const *DatatypeRegistry::get_timepoint_ops(DatatypeIDView const datatype_id) noexcept {
+    auto const res = find_map_entry(datatype_id, [](auto const &entry) noexcept {
+        return &entry.timepoint_ops;
+    });
+
+    // res is nullopt if no datatype matching given datatype_iri was found
+    if (res.has_value()) {
+        // contained ptr cannot be nullptr as by return in lambda for find_map_entry above
+        // optional behind contained ptr can be nullopt if type is not numeric
+        if (auto const ops_ptr = res.value(); ops_ptr->has_value()) {
+            return &ops_ptr->value();
+        }
+    }
+
+    // no datatype found or not numeric
+    return nullptr;
+}
+
+DatatypeRegistry::DurationOps const *DatatypeRegistry::get_duration_ops(DatatypeIDView const datatype_id) noexcept {
+    auto const res = find_map_entry(datatype_id, [](auto const &entry) noexcept {
+        return &entry.duration_ops;
+    });
+
+    // res is nullopt if no datatype matching given datatype_iri was found
+    if (res.has_value()) {
+        // contained ptr cannot be nullptr as by return in lambda for find_map_entry above
+        // optional behind contained ptr can be nullopt if type is not numeric
+        if (auto const ops_ptr = res.value(); ops_ptr->has_value()) {
+            return &ops_ptr->value();
+        }
+    }
+
+    // no datatype found or not numeric
+    return nullptr;
+}
+
 DatatypeRegistry::ebv_fptr_t DatatypeRegistry::get_ebv(DatatypeIDView const datatype_id) noexcept {
     auto const res = find_map_entry(datatype_id, [](auto const &entry) noexcept {
         return entry.ebv_fptr;

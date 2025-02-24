@@ -5,8 +5,16 @@
 #include <compare>
 #include <cstddef>
 #include <cstdint>
+#include <rdf4cpp/TriBool.hpp>
 
 namespace rdf4cpp::storage::identifier {
+
+enum struct LiteralTypeTag : uint8_t {
+    Default = 0b00,
+    Numeric = 0b01,
+    Timepoint = 0b10,
+    Duration  = 0b11,
+};
 
 /**
  * <p>A literal type specifies the type of a literal. Types, which are not available within this enum class MUST be specified as LiteralType::OTHER.</p>
@@ -16,7 +24,7 @@ namespace rdf4cpp::storage::identifier {
 struct __attribute__((__packed__)) LiteralType {
     using underlying_type = uint8_t;
     static constexpr size_t width = 6;
-    static constexpr size_t numeric_tagging_bit_pos = 5;
+    static constexpr size_t numeric_tagging_bit_shift = 4;
 
 private:
     uint8_t underlying_: width;
@@ -32,22 +40,42 @@ public:
         return LiteralType{0};
     }
 
-    static constexpr LiteralType from_parts(bool const is_numeric, uint8_t const type_id) noexcept {
-        assert(is_numeric || type_id != 0);
-        assert((type_id & 0b1110'0000) == 0);
-        return LiteralType{static_cast<underlying_type>(type_id | (is_numeric << numeric_tagging_bit_pos))};
+    static constexpr LiteralType from_parts(LiteralTypeTag tag, underlying_type const type_id) noexcept {
+        assert(tag != LiteralTypeTag::Default || type_id != 0);
+        assert((type_id & 0b1111'0000) == 0);
+        return LiteralType{static_cast<underlying_type>(type_id | (static_cast<underlying_type>(tag) << numeric_tagging_bit_shift))};
     }
 
     [[nodiscard]] constexpr bool is_fixed() const noexcept {
         return *this != LiteralType::other();
     }
 
-    [[nodiscard]] constexpr bool is_numeric() const noexcept {
-        return underlying_ & (1 << numeric_tagging_bit_pos);
+    [[nodiscard]] constexpr TriBool is_numeric() const noexcept {
+        if (!is_fixed()) {
+            return TriBool::Err;
+        }
+
+        return static_cast<LiteralTypeTag>((underlying_ >> numeric_tagging_bit_shift) & 0b11) == LiteralTypeTag::Numeric;
+    }
+
+    [[nodiscard]] constexpr TriBool is_timepoint() const noexcept {
+        if (!is_fixed()) {
+            return TriBool::Err;
+        }
+
+        return static_cast<LiteralTypeTag>((underlying_ >> numeric_tagging_bit_shift) & 0b11)  == LiteralTypeTag::Timepoint;
+    }
+
+    [[nodiscard]] constexpr TriBool is_duration() const noexcept {
+        if (!is_fixed()) {
+            return TriBool::Err;
+        }
+
+        return static_cast<LiteralTypeTag>((underlying_ >> numeric_tagging_bit_shift) & 0b11)  == LiteralTypeTag::Duration;
     }
 
     [[nodiscard]] constexpr uint8_t type_id() const noexcept {
-        return underlying_ & ~(1 << numeric_tagging_bit_pos);
+        return underlying_ & ~(0b11 << numeric_tagging_bit_shift);
     }
 
     [[nodiscard]] constexpr underlying_type to_underlying() const noexcept {

@@ -18,8 +18,8 @@ struct DatatypeMapping<xsd_gYearMonth> {
     using cpp_datatype = std::pair<rdf4cpp::YearMonth, rdf4cpp::OptionalTimezone>;
 };
 template<>
-struct DatatypeSupertypeMapping<xsd_gYearMonth> {
-    using supertype = xsd::Date;
+struct DatatypePromotionMapping<xsd_gYearMonth> {
+    using promoted = xsd::Date;
 };
 
 
@@ -40,18 +40,18 @@ std::partial_ordering capabilities::Comparable<xsd_gYearMonth>::compare(cpp_type
 
 template<>
 template<>
-capabilities::Subtype<xsd_gYearMonth>::super_cpp_type<0> capabilities::Subtype<xsd_gYearMonth>::into_supertype<0>(cpp_type const &value) noexcept;
+capabilities::Promotable<xsd_gYearMonth>::promoted_cpp_type<0> capabilities::Promotable<xsd_gYearMonth>::promote<0>(cpp_type const &value) noexcept;
 
 template<>
 template<>
-nonstd::expected<capabilities::Subtype<xsd_gYearMonth>::cpp_type, DynamicError> capabilities::Subtype<xsd_gYearMonth>::from_supertype<0>(super_cpp_type<0> const &value) noexcept;
+nonstd::expected<capabilities::Promotable<xsd_gYearMonth>::cpp_type, DynamicError> capabilities::Promotable<xsd_gYearMonth>::demote<0>(promoted_cpp_type<0> const &value) noexcept;
 #endif
 
 extern template struct LiteralDatatypeImpl<xsd_gYearMonth,
                                            capabilities::Comparable,
                                            capabilities::FixedId,
                                            capabilities::Inlineable,
-                                           capabilities::Subtype>;
+                                           capabilities::Promotable>;
 
 }  // namespace rdf4cpp::datatypes::registry
 
@@ -61,7 +61,7 @@ struct GYearMonth : registry::LiteralDatatypeImpl<registry::xsd_gYearMonth,
                                                   registry::capabilities::Comparable,
                                                   registry::capabilities::FixedId,
                                                   registry::capabilities::Inlineable,
-                                                  registry::capabilities::Subtype> {};
+                                                  registry::capabilities::Promotable> {};
 
 }  // namespace rdf4cpp::datatypes::xsd
 
