@@ -2,7 +2,10 @@
 
 # rdf4cpp
 
-rdf4cpp aims to be a stable, modern RDF library for C++.
+rdf4cpp aims to be a stable, modern RDF library for C++, implementing the following standards:
+- [W3C XML Schema Definition Language (XSD) 1.1 Part 2: Datatypes](https://www.w3.org/TR/xmlschema11-2/)
+- [XPath and XQuery Functions and Operators 3.1 ](https://www.w3.org/TR/xpath-functions-31/)
+- [OWL Real and Rational](https://www.w3.org/TR/owl2-syntax/#Datatype_Maps)
 
 Current documentation: https://rdf4cpp.readthedocs.io/en/latest/
 

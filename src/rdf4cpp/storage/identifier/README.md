@@ -51,8 +51,9 @@ A `NodeID` of 0 is considered a null `NodeID` which must not identify any resour
 ### `LiteralType` (6 bit)
 The `LiteralType` is a shortcut for the type stored within the backend of the `Literal`.
 To reduce computation costs, common types like `xsd:int` can be encoded directly into the NodeBackendHandle.
-For all other types, `LiteralType` is set to `0`.
-In that case, the type information must be retrieved from backend if needed.
+If the type is directly encoded, the two MSB of the `LiteralType` are used to determine the 
+type category the type belongs to (`Default`, `Numeric`, `Duration` or `Timepoint`).
+For all other types, `LiteralType` is set to `0`. In that case, the type information must be retrieved from backend if needed.
 
 ### `LiteralID` (42 bit)
 The `LiteralID` identifies a literal in a node storage, given `NodeType == Literal`.
